@@ -610,23 +610,29 @@ def ticker_tape_html(theme: str = "light") -> str:
 
 
 def technical_analysis_html(symbol: str = "NASDAQ:AAPL", theme: str = "light") -> str:
-    """TradingView 기술적 분석 계기판 위젯."""
+    """TradingView Advanced Chart 위젯 (전체 차트)."""
     import json
     config = {
-        "interval": "1D",
-        "width": "100%",
-        "isTransparent": False,
-        "height": 450,
+        "autosize": True,
         "symbol": symbol,
-        "showIntervalTabs": True,
+        "interval": "D",
+        "timezone": "Asia/Seoul",
+        "theme": theme,
+        "style": "1",
         "locale": "ko",
-        "colorTheme": theme
+        "toolbar_bg": "#f1f3f6" if theme == "light" else "#131722",
+        "enable_publishing": False,
+        "withdateranges": True,
+        "hide_side_toolbar": False,
+        "allow_symbol_change": True,
+        "container_id": "tradingview_advanced_chart"
     }
     return f"""
-<div class="tradingview-widget-container">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
-  {json.dumps(config)}
+<div class="tradingview-widget-container" style="height: 600px; width: 100%;">
+  <div id="tradingview_advanced_chart" style="height: 100%; width: 100%;"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+  new TradingView.widget({json.dumps(config)});
   </script>
 </div>
 """
@@ -1230,45 +1236,51 @@ def _render_market(mkt_data: list) -> str:
 
 
 def _render_home_charts(mkt_data: list, theme: str = "light") -> None:
-    """홈 화면: 시장 지표 미니 차트 6개 (통합 카드형)"""
-    is_dark = (theme == "dark")
-    bg_color = "#1e252e" if is_dark else "#ffffff"
-    muted_color = "#9aacb0" if is_dark else "#7a8f94"
-    border_color = "#313d4a" if is_dark else "#dde3e8"
-
-    if not mkt_data or not any(m.get("hist") for m in mkt_data):
-        st.info("시장 데이터를 불러오는 중... (yfinance 필요)")
+    """홈 화면: 시장 지표 카드형 UI (깔끔하고 모던한 스타일)."""
+    
+    if not mkt_data:
+        st.info("시장 데이터를 불러오는 중...")
         return
 
-    valid = [m for m in mkt_data if m.get("price") is not None and len(m.get("hist", [])) > 0]
-    if not valid:
-        st.warning("yfinance 설치 후 시장 지표를 확인할 수 있습니다.")
-        return
+    # 카드 스타일 CSS
+    st.markdown("""
+    <style>
+    .mkt-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 2rem;
+    }
+    .mkt-card {
+        background: #ffffff;
+        border: 1px solid #dde3e8;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+    .mkt-name { font-size: 0.75rem; font-weight: 700; color: #7a8f94; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mkt-val { font-size: 1.5rem; font-weight: 700; color: #1a2d30; }
+    .mkt-chg { font-size: 0.9rem; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    cols = st.columns(3)
-    for i, item in enumerate(valid[:6]):
-        col = cols[i % 3]
-        with col:
-            chg   = item["change"]
-            color = "#1a7f37" if chg >= 0 else "#b42318"
-            bg_fill = "rgba(26,127,55,0.08)" if chg >= 0 else "rgba(180,35,24,0.06)"
-            sign  = "+" if chg > 0 else ""
-            arrow = "▲" if chg >= 0 else "▼"
-            price_str = (
-                f"{item['price']:,.0f}" if item["name"] in ("KOSPI", "USD/KRW")
-                else f"{item['price']:,.2f}"
-            )
-            
-            hist = item.get("hist", [])
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(y=hist, mode="lines", line=dict(color=color, width=2.5), fill="tozeroy", fillcolor=bg_fill, hoverinfo="skip"))
-            fig.add_annotation(x=0, y=1.15, xref="paper", yref="paper", text=f"<b>{item['name']}</b>", showarrow=False, font=dict(size=12, color=muted_color), xanchor="left", yanchor="top")
-            fig.add_annotation(x=0, y=0.75, xref="paper", yref="paper", text=f"<b>{price_str}</b>", showarrow=False, font=dict(size=26, color=color, family="DM Sans"), xanchor="left", yanchor="top")
-            fig.add_annotation(x=0, y=0.45, xref="paper", yref="paper", text=f"{arrow} {sign}{chg:.2f}%", showarrow=False, font=dict(size=13, color=color, family="DM Sans"), xanchor="left", yanchor="top")
-            fig.update_layout(height=140, margin=dict(l=20, r=0, t=20, b=0), paper_bgcolor=bg_color, plot_bgcolor=bg_color, showlegend=False, xaxis=dict(visible=False, fixedrange=True), yaxis=dict(visible=False, fixedrange=True, range=[min(hist)*0.99, max(hist)*1.05]), shapes=[dict(type="rect", xref="paper", yref="paper", x0=0, y0=0, x1=1, y1=1, line=dict(color=border_color, width=1.5), fillcolor="rgba(0,0,0,0)", layer="below")])
-            
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.markdown('<div class="mkt-container">', unsafe_allow_html=True)
+    for item in mkt_data[:6]:
+        if item.get("price") is None: continue
+        chg = item["change"]
+        color = "#1a7f37" if chg >= 0 else "#b42318"
+        arrow = "▲" if chg >= 0 else "▼"
+        st.markdown(f"""
+        <div class="mkt-card">
+            <div class="mkt-name">{item['name']}</div>
+            <div class="mkt-val">{item['price']:,.2f}</div>
+            <div class="mkt-chg" style="color:{color}">{arrow} {abs(chg):.2f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def build(
@@ -1574,15 +1586,10 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                         unsafe_allow_html=True,
                     )
 
-            # 메인 차트
-            main_id = chart_result.get("main_chart", "")
+            # 메인 차트: TradingView Advanced Charting Widget
             st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-            if main_id == "candlestick":
-                st.plotly_chart(_fig_candlestick(df, theme=theme), use_container_width=True)
-            elif main_id == "dual_line" and classify_result["class_type"] == "Static":
-                st.plotly_chart(_fig_static_dual(df, theme=theme), use_container_width=True)
-            else:
-                st.plotly_chart(_fig_candlestick(df, theme=theme), use_container_width=True)
+            # 파일 이름은 유효한 심볼이 아닐 가능성이 높으므로 기본값(AAPL) 사용
+            st.components.v1.html(technical_analysis_html(symbol="NASDAQ:AAPL", theme=theme), height=600)
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 서브 차트

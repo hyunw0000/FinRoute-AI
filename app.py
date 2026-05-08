@@ -78,30 +78,36 @@ with st.sidebar:
                 st.session_state.fin_view = key
                 st.rerun()
 
-    st.markdown('<div class="sq-nav-label">CSV Manager</div>', unsafe_allow_html=True)
-    uploaded_files = st.file_uploader(
-        "Upload CSVs", type="csv", key="multi_csv_upload", accept_multiple_files=True,
-    )
-    
-    if uploaded_files:
-        for f in uploaded_files:
-            if f.name not in st.session_state.uploaded_files:
-                st.session_state.uploaded_files[f.name] = pd.read_csv(f)
-                if st.session_state.active_file is None:
-                    st.session_state.active_file = f.name
-        
-    if st.session_state.uploaded_files:
-        st.markdown('<div class="sq-nav-label">Select Active File</div>', unsafe_allow_html=True)
-        selected = st.radio(
-            "Select file", 
-            list(st.session_state.uploaded_files.keys()),
-            index=list(st.session_state.uploaded_files.keys()).index(st.session_state.active_file) 
-            if st.session_state.active_file in st.session_state.uploaded_files else 0,
-            label_visibility="collapsed"
+    # CSV Manager Drawer
+    with st.sidebar.expander("📂 CSV Files Manager", expanded=True):
+        uploaded_files = st.file_uploader(
+            "Upload CSVs", type="csv", key="multi_csv_upload", accept_multiple_files=True,
         )
-        if selected != st.session_state.active_file:
-            st.session_state.active_file = selected
-            st.rerun()
+        
+        if uploaded_files:
+            for f in uploaded_files:
+                if f.name not in st.session_state.uploaded_files:
+                    try:
+                        # 파일 인코딩 에러 방지
+                        st.session_state.uploaded_files[f.name] = pd.read_csv(f)
+                    except UnicodeDecodeError:
+                        f.seek(0)
+                        st.session_state.uploaded_files[f.name] = pd.read_csv(f, encoding='cp949')
+                    
+                    if st.session_state.active_file is None:
+                        st.session_state.active_file = f.name
+            
+        if st.session_state.uploaded_files:
+            selected = st.radio(
+                "Select active file", 
+                list(st.session_state.uploaded_files.keys()),
+                index=list(st.session_state.uploaded_files.keys()).index(st.session_state.active_file) 
+                if st.session_state.active_file in st.session_state.uploaded_files else 0,
+                label_visibility="collapsed"
+            )
+            if selected != st.session_state.active_file:
+                st.session_state.active_file = selected
+                st.rerun()
 
     st.markdown('<div class="sq-nav-label">Settings</div>', unsafe_allow_html=True)
     is_dark = st.toggle("Dark Mode", value=st.session_state.theme == "dark")
