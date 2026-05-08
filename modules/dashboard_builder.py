@@ -10,11 +10,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-# Sequence 스타일: Streamlit 네이티브 테마 완벽 연동
-THEME_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
-:root {
+def get_theme_css(theme: str = "light") -> str:
+    """테마에 따른 CSS 반환."""
+    is_dark = (theme == "dark")
+    
+    # 공통 변수
+    base_vars = """
   --sq-teal-deep: #063d3d;
   --sq-teal: #0a5c5c;
   --sq-teal-mid: #0d6e6e;
@@ -22,144 +23,620 @@ THEME_CSS = """
   --sq-green: #2ed573;
   --sq-danger: #e74c3c;
   --sq-warn: #f39c12;
-  
-  /* 테마 자동 반응형 변수 */
-  --sq-bg: var(--background-color); 
-  --sq-surface: var(--secondary-background-color);
-  --sq-text: var(--text-color);
-  --sq-border: rgba(128, 128, 128, 0.2);
-  --sq-muted: rgba(128, 128, 128, 0.6);
-  
   --sq-radius: 14px;
   --sq-radius-sm: 10px;
-  --sq-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-  --sq-shadow-hover: 0 10px 36px rgba(0, 0, 0, 0.25);
   --sq-font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
+    """
+    
+    if is_dark:
+        theme_vars = """
+  --sq-bg: #131722;
+  --sq-surface: #1e222d;
+  --sq-border: #2a2e39;
+  --sq-text: #d1d4dc;
+  --sq-muted: #787b86;
+  --sq-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --sq-shadow-hover: 0 10px 36px rgba(0, 0, 0, 0.5);
+        """
+        app_bg = "#131722"
+        header_bg = "rgba(19, 23, 34, 0.95)"
+        sidebar_bg = "#161b22"
+        sidebar_border = "#2a2e39"
+        card_bg = "#1e222d"
+        feed_item_bg = "#1e222d"
+        mkt_border = "#2a2e39"
+        ac_bg = "#1e222d"
+        ac_block_border = "#2a2e39"
+    else:
+        theme_vars = """
+  --sq-bg: #ffffff;
+  --sq-surface: #f8f9fa;
+  --sq-border: #e0e3eb;
+  --sq-text: #131722;
+  --sq-muted: #787b86;
+  --sq-shadow: 0 4px 24px rgba(6, 61, 61, 0.05);
+  --sq-shadow-hover: 0 10px 36px rgba(6, 61, 61, 0.08);
+        """
+        app_bg = "#ffffff"
+        header_bg = "rgba(255, 255, 255, 0.95)"
+        sidebar_bg = "#f8f9fa"
+        sidebar_border = "#e0e3eb"
+        card_bg = "#ffffff"
+        feed_item_bg = "#ffffff"
+        mkt_border = "#e0e3eb"
+        ac_bg = "#ffffff"
+        ac_block_border = "#e0e3eb"
 
-/* 전체 앱 배경 및 폰트 설정 */
-.stApp { background: var(--sq-bg) !important; color: var(--sq-text); font-family: var(--sq-font); }
-[data-testid="stAppViewContainer"] > .main { background: transparent; }
-.main .block-container { padding: 1.25rem 1.75rem 2rem !important; max-width: 100% !important; }
+    return f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+:root {{
+    {base_vars}
+    {theme_vars}
+}}
+.stApp {{ background: {app_bg} !important; color: var(--sq-text); font-family: var(--sq-font); }}
+.sq-app-title {{
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem 0;
+  color: var(--sq-text);
+}}
+[data-testid="stAppViewContainer"] > .main {{ background: transparent; }}
+.main .block-container {{
+  padding: 1.25rem 1.75rem 2rem !important;
+  max-width: 100% !important;
+}}
+[data-testid="stHeader"] {{
+  background: {header_bg} !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--sq-border) !important;
+}}
+[data-testid="stToolbar"] {{ background: transparent !important; }}
+h1, h2, h3, h4 {{ color: var(--sq-text) !important; letter-spacing: -0.02em; }}
+.stCaption, [data-testid="stCaptionContainer"] {{ color: var(--sq-muted) !important; }}
 
-/* 헤더 및 툴바 투명화 */
-[data-testid="stHeader"] { background: transparent !important; border-bottom: none !important; }
-[data-testid="stToolbar"] { background: transparent !important; }
+.sq-nav-label {{
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sq-muted);
+  margin: 4px 0 10px 0;
+  text-transform: uppercase;
+}}
 
-/* 텍스트 색상 연동 */
-h1, h2, h3, h4, h5 { color: var(--sq-text) !important; letter-spacing: -0.02em; }
-.stCaption, [data-testid="stCaptionContainer"] { color: var(--sq-muted) !important; }
-.sq-app-title { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 0.5rem 0; color: var(--sq-text); }
-.sq-nav-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em; color: var(--sq-muted); margin: 4px 0 10px 0; text-transform: uppercase; }
+/* 히어로 스트립 (다크 틸 + 패턴) */
+.sq-hero-row {{
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: var(--sq-radius);
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 20%, rgba(46,213,115,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 88% 80%, rgba(255,255,255,0.07) 0%, transparent 50%),
+    linear-gradient(135deg, var(--sq-teal-deep) 0%, var(--sq-teal) 42%, var(--sq-teal-mid) 100%);
+  box-shadow: 0 12px 40px rgba(6, 61, 61, 0.22);
+  border: 1px solid rgba(255,255,255,0.06);
+}}
+@media (max-width: 1100px) {{
+  .sq-hero-row {{ grid-template-columns: 1fr 1fr; }}
+}}
+.sq-hero-cell {{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--sq-radius-sm);
+  padding: 12px 14px;
+  min-height: 102px;
+  color: #f4faf9;
+}}
+.sq-hero-cell__label {{
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  margin-bottom: 6px;
+  color: rgba(255,255,255,0.85);
+}}
+.sq-hero-cell__value {{
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}}
+.sq-hero-cell__body {{
+  font-size: 0.82rem;
+  opacity: 0.92;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.92);
+}}
+.sq-badge-pos {{
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(46,213,115,0.25);
+  color: #b8ffd4;
+  border: 1px solid rgba(46,213,115,0.45);
+}}
+.sq-progress {{
+  margin-top: 8px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.2);
+  overflow: hidden;
+}}
+.sq-progress > span {{
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sq-mint), var(--sq-green));
+}}
 
-/* 네이티브 사이드바 */
-[data-testid="stSidebar"] { background: var(--sq-surface) !important; border-right: 1px solid var(--sq-border) !important; }
-[data-testid="stSidebar"] > div:first-child { background: transparent !important; }
-[data-testid="stSidebar"] .block-container { padding-top: 1rem !important; padding-bottom: 1.25rem !important; }
-.sq-sb-brand { margin-bottom: 1.25rem; }
-.sq-sb-logo-row { display: flex; align-items: center; gap: 12px; }
-.sq-sb-logo-mark { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; background: linear-gradient(135deg, var(--sq-teal-deep) 0%, var(--sq-teal) 55%, var(--sq-mint) 160%); }
-.sq-sb-logo-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.03em; color: var(--sq-text); line-height: 1.2; }
-.sq-sb-logo-text span { color: var(--sq-teal); }
-.sq-sb-logo-sub { font-size: 0.72rem; color: var(--sq-muted); margin-top: 2px; }
-.sq-sb-nav-wrap { margin: 0.5rem 0 1rem 0; }
-.sq-sb-nav-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.sq-sb-nav-row .stButton { flex: 1; }
-.sq-sb-nav-ic { flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
-.sq-sb-upload-cap { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sq-muted); margin: 1rem 0 0.35rem 0; }
-
-/* 차원 필터 뱃지 */
-.sq-dim-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.sq-dim-pill { flex: 1; min-width: 48px; text-align: center; padding: 8px 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--sq-border); box-sizing: border-box; }
-.sq-dim-pill--active { background: var(--sq-teal); color: #fff; border-color: var(--sq-teal); box-shadow: 0 2px 8px rgba(10, 92, 92, 0.2); }
-.sq-dim-pill--idle { background: var(--sq-bg); color: var(--sq-muted); }
-
-/* 버튼 스타일 */
-.stApp .stButton > button[kind="primary"] { background: linear-gradient(180deg, var(--sq-green) 0%, #24b963 100%) !important; color: #063d2a !important; border: none !important; font-weight: 600 !important; border-radius: 10px !important; box-shadow: 0 2px 8px rgba(46,213,115,0.35); }
-.stApp .stButton > button[kind="secondary"] { background: var(--sq-surface) !important; color: var(--sq-text) !important; border: 1px solid var(--sq-border) !important; border-radius: 10px !important; font-weight: 500 !important; }
-.stApp .stButton > button:disabled { opacity: 0.45 !important; }
-
-/* 히어로 스트립 */
-.sq-hero-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; padding: 18px; border-radius: var(--sq-radius); background: linear-gradient(135deg, var(--sq-teal-deep) 0%, var(--sq-teal) 42%, var(--sq-teal-mid) 100%); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.06); }
-@media (max-width: 1100px) { .sq-hero-row { grid-template-columns: 1fr 1fr; } }
-.sq-hero-cell { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--sq-radius-sm); padding: 12px 14px; min-height: 102px; color: #f4faf9; }
-.sq-hero-cell__label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; margin-bottom: 6px; color: rgba(255,255,255,0.85); }
-.sq-hero-cell__value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
-.sq-hero-cell__body { font-size: 0.82rem; opacity: 0.92; line-height: 1.35; color: rgba(255,255,255,0.92); }
-.sq-badge-pos { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; background: rgba(46,213,115,0.25); color: #b8ffd4; border: 1px solid rgba(46,213,115,0.45); }
-.sq-progress { margin-top: 8px; height: 6px; border-radius: 999px; background: rgba(0,0,0,0.2); overflow: hidden; }
-.sq-progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sq-mint), var(--sq-green)); }
-
-/* 카드 공통 (KPI, 차트, 패널) */
-.sq-card, .sq-rail, .sq-ac-wrap, .sq-eng-section { background: var(--sq-surface); border: 1px solid var(--sq-border); border-radius: var(--sq-radius); box-shadow: var(--sq-shadow); }
-.sq-card { transition: transform 0.2s ease; }
-.sq-card:hover { transform: translateY(-4px); box-shadow: var(--sq-shadow-hover); }
-
-/* KPI 텍스트 */
-.sq-kpi { padding: 18px 16px; margin-bottom: 10px; }
-.sq-kpi__name { font-size: 0.78rem; font-weight: 600; color: var(--sq-muted); margin-bottom: 6px; }
-.sq-kpi__val { font-size: 1.35rem; font-weight: 700; color: var(--sq-text); }
-.sq-kpi__sub { font-size: 0.78rem; color: var(--sq-muted); margin-top: 4px; }
-.sq-kpi__dot { display: inline-block; margin-top: 8px; font-size: 0.75rem; font-weight: 600; }
-.sq-chart { padding: 12px 12px 4px; margin-bottom: 14px; }
+/* KPI / 차트 카드 */
+.sq-card {{
+  background: var(--sq-surface);
+  border: 1px solid var(--sq-border);
+  border-radius: var(--sq-radius);
+  box-shadow: var(--sq-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}}
+.sq-card:hover {{
+  transform: translateY(-4px);
+  box-shadow: var(--sq-shadow-hover);
+}}
+.sq-kpi {{
+  padding: 18px 16px;
+  margin-bottom: 10px;
+}}
+.sq-kpi__name {{
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sq-muted);
+  margin-bottom: 6px;
+}}
+.sq-kpi__val {{
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--sq-text);
+}}
+.sq-kpi__sub {{
+  font-size: 0.78rem;
+  color: var(--sq-muted);
+  margin-top: 4px;
+}}
+.sq-kpi__dot {{
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}}
+.sq-chart {{
+  padding: 12px 12px 4px;
+  margin-bottom: 14px;
+}}
 
 /* 우측 패널 */
-.sq-rail { padding: 16px 14px; }
-.sq-rail-section { margin-bottom: 14px; }
-.sq-rail-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sq-muted); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--sq-border); }
-.sq-mkt-item, .sq-ind-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--sq-border); }
-.sq-mkt-name, .sq-ind-name { font-size: 0.78rem; color: var(--sq-muted); font-weight: 600; }
-.sq-mkt-val, .sq-ind-val { font-size: 0.82rem; font-weight: 700; color: var(--sq-text); }
-.sq-ind-val { font-size: 1.05rem; }
+.sq-rail {{
+  background: var(--sq-surface);
+  border: 1px solid var(--sq-border);
+  border-radius: var(--sq-radius);
+  box-shadow: var(--sq-shadow);
+  padding: 16px 14px;
+}}
+.sq-rail h1, .sq-rail h2, .sq-rail h3, .sq-rail h4, .sq-rail h5 {{
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sq-muted) !important;
+  margin: 0 0 10px 0 !important;
+}}
+.sq-rail p, .sq-rail li, .sq-rail code {{ font-size: 0.85rem; }}
 
-/* 이벤트 피드 */
-.sq-feed-item { background: var(--sq-bg); border: 1px solid var(--sq-border); border-radius: var(--sq-radius-sm); padding: 10px 12px; margin-bottom: 8px; transition: transform 0.15s ease; }
-.sq-feed-item:hover { transform: translateX(5px); }
-.sq-feed-scroll { max-height: 220px; overflow-y: auto; padding-right: 4px; }
-.sq-feed-scroll::-webkit-scrollbar { width: 4px; }
-.sq-feed-scroll::-webkit-scrollbar-track { background: transparent; }
-.sq-feed-scroll::-webkit-scrollbar-thumb { background: var(--sq-border); border-radius: 2px; }
+.sq-feed-item {{
+  border-radius: var(--sq-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: transform 0.15s ease;
+  border: 1px solid var(--sq-border);
+  background: {feed_item_bg};
+}}
+.sq-feed-item:hover {{ transform: translateX(5px); }}
+
+/* 엔진 뷰 메트릭 카드 */
+div[data-testid="stMetric"] {{
+  background: var(--sq-surface);
+  border: 1px solid var(--sq-border);
+  border-radius: var(--sq-radius-sm);
+  padding: 10px;
+  box-shadow: var(--sq-shadow);
+}}
+
+/* Primary 버튼: 민트 그린 */
+.stApp .stButton > button[kind="primary"] {{
+  background: linear-gradient(180deg, var(--sq-green) 0%, #24b963 100%) !important;
+  color: #063d2a !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(46,213,115,0.35);
+}}
+.stApp .stButton > button[kind="secondary"] {{
+  background: var(--sq-surface) !important;
+  color: var(--sq-teal) !important;
+  border: 1px solid var(--sq-border) !important;
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+}}
+.stApp .stButton > button:disabled {{ opacity: 0.45 !important; }}
+
+/* 네이티브 사이드바 */
+[data-testid="stSidebar"] {{
+  background: {sidebar_bg} !important;
+  border-right: 1px solid {sidebar_border} !important;
+}}
+[data-testid="stSidebar"] > div:first-child {{
+  background: {sidebar_bg} !important;
+}}
+[data-testid="stSidebar"] .block-container {{
+  padding-top: 1rem !important;
+  padding-bottom: 1.25rem !important;
+}}
+.sq-sb-brand {{ margin-bottom: 1.25rem; }}
+.sq-sb-logo-row {{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}}
+.sq-sb-logo-mark {{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--sq-teal-deep) 0%, var(--sq-teal) 55%, var(--sq-mint) 160%);
+  box-shadow: 0 4px 14px rgba(10, 92, 92, 0.25);
+}}
+.sq-sb-logo-text {{
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--sq-text);
+  line-height: 1.2;
+}}
+.sq-sb-logo-text span {{ color: var(--sq-teal); }}
+.sq-sb-logo-sub {{
+  font-size: 0.72rem;
+  color: var(--sq-muted);
+  margin-top: 2px;
+}}
+.sq-sb-nav-wrap {{ margin: 0.5rem 0 1rem 0; }}
+.sq-sb-nav-row {{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}}
+.sq-sb-nav-row .stButton {{ flex: 1; }}
+.sq-sb-nav-ic {{
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}}
+.sq-sb-upload-cap {{
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sq-muted);
+  margin: 1rem 0 0.35rem 0;
+}}
+.sq-sb-spacer {{ flex-grow: 1; min-height: 8px; }}
+.sq-dim-row {{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}}
+.sq-dim-pill {{
+  flex: 1;
+  min-width: 48px;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--sq-border);
+  box-sizing: border-box;
+}}
+.sq-dim-pill--active {{
+  background: var(--sq-teal);
+  color: #fff;
+  border-color: var(--sq-teal);
+  box-shadow: 0 2px 8px rgba(10, 92, 92, 0.2);
+}}
+.sq-dim-pill--idle {{
+  color: var(--sq-muted);
+  background: {is_dark and "#212a35" or "#f0f3f5"};
+}}
+.sq-dim-note {{
+  font-size: 0.72rem;
+  color: var(--sq-muted);
+  margin: 10px 0 0 0;
+  line-height: 1.4;
+}}
+
+/* 이벤트 스크롤 컨테이너 */
+.sq-feed-scroll {{
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}}
+.sq-feed-scroll::-webkit-scrollbar {{ width: 4px; }}
+.sq-feed-scroll::-webkit-scrollbar-track {{ background: transparent; }}
+.sq-feed-scroll::-webkit-scrollbar-thumb {{ background: #c5d5d0; border-radius: 2px; }}
 
 /* 분석목적 칩 */
-.sq-goal-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin: 3px 2px; border: 1px solid; }
-.sq-goal-on { background: rgba(10,92,92,0.15); color: var(--sq-mint); border-color: var(--sq-teal); }
-.sq-goal-off { background: var(--sq-bg); color: var(--sq-muted); border-color: var(--sq-border); }
+.sq-goal-chip {{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600;
+  margin: 3px 2px; border: 1px solid;
+}}
+.sq-goal-on  {{ background: rgba(10,92,92,0.1); color: #0a5c5c; border-color: rgba(10,92,92,0.25); }}
+.sq-goal-off {{ background: {is_dark and "#212a35" or "#f0f3f5"}; color: #9aacb0; border-color: var(--sq-border); }}
 
-/* Action Console */
-.sq-ac-wrap { overflow: hidden; margin-bottom: 14px; }
-.sq-ac-header { background: linear-gradient(135deg, #063d3d 0%, #0a5c5c 100%); padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
-.sq-ac-title { font-size: 1rem; font-weight: 700; color: #fff; }
-.sq-ac-badge { font-size: 0.72rem; background: rgba(255,255,255,0.15); color: #b8ffd4; padding: 2px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); }
-.sq-ac-llm { padding: 10px 20px; background: var(--sq-bg); border-bottom: 1px solid var(--sq-border); font-family: monospace; font-size: 0.78rem; color: var(--sq-mint); }
-.sq-ac-body { display: grid; grid-template-columns: 1fr; }
-.sq-ac-block { padding: 18px 20px; border-bottom: 1px solid var(--sq-border); }
-.sq-ac-block:last-child { border-bottom: none; }
-.sq-ac-lbl { font-size: 0.72rem; font-weight: 700; color: var(--sq-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.sq-ac-text { font-size: 0.95rem; color: var(--sq-text); line-height: 1.65; }
+/* 시장 지표 */
+.sq-mkt-item {{
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px solid {mkt_border};
+}}
+.sq-mkt-name {{ font-size: 0.75rem; font-weight: 600; color: var(--sq-muted); }}
+.sq-mkt-val  {{ font-size: 0.78rem; font-weight: 700; }}
 
-/* 엔진 뷰 섹션 */
-.sq-eng-section { padding: 22px 24px; margin-bottom: 16px; }
-.sq-eng-section-title { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sq-muted); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--sq-border); }
+/* Action Console 개선 */
+.sq-ac-wrap {{
+  background: {ac_bg}; border: 1px solid var(--sq-border);
+  border-radius: var(--sq-radius); box-shadow: var(--sq-shadow);
+  overflow: hidden; margin-bottom: 14px;
+}}
+.sq-ac-header {{
+  background: linear-gradient(135deg, #063d3d 0%, #0a5c5c 100%);
+  padding: 14px 20px; display: flex; align-items: center; gap: 10px;
+}}
+.sq-ac-title {{ font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }}
+.sq-ac-badge {{
+  font-size: 0.72rem; background: rgba(255,255,255,0.15); color: #b8ffd4;
+  padding: 2px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2);
+}}
+.sq-ac-llm {{
+  padding: 10px 20px; background: rgba(10,92,92,0.05);
+  border-bottom: 1px solid {ac_block_border};
+  font-family: monospace; font-size: 0.78rem; color: #0a5c5c;
+}}
+.sq-ac-body {{ display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; }}
+.sq-ac-block {{
+  padding: 18px 20px; border-right: 1px solid {ac_block_border};
+}}
+.sq-ac-block:last-child {{ border-right: none; }}
+.sq-lbl {{
+  font-size: 0.72rem; font-weight: 700; color: var(--sq-muted);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+}}
+.sq-ac-text {{ font-size: 0.95rem; color: var(--sq-text); line-height: 1.65; }}
 
-.sq-pipe-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 8px 0; }
-.sq-pipe-step { background: var(--sq-bg); border: 1.5px solid var(--sq-teal); border-radius: 10px; padding: 10px 18px; font-size: 0.82rem; font-weight: 600; color: var(--sq-text); min-width: 110px; text-align: center; }
-.sq-pipe-arrow { color: var(--sq-teal); font-size: 1.2rem; padding: 0 8px; }
-.sq-pipe-result { background: linear-gradient(135deg,#063d3d,#0a5c5c); color: #b8ffd4 !important; border-color: transparent !important; }
+/* 우측 배너 */
+.sq-rail-section {{ margin-bottom: 14px; }}
+.sq-rail-title {{
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--sq-muted); margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--sq-border);
+}}
 
-.sq-sim-card { background: var(--sq-bg); border: 1.5px solid var(--sq-border); border-radius: 12px; padding: 16px; text-align: center; transition: all 0.2s; }
-.sq-sim-card.best { background: rgba(10,92,92,0.1); border-color: var(--sq-teal); }
-.sq-sim-name { font-size: 0.82rem; font-weight: 700; color: var(--sq-text); margin-bottom: 8px; }
-.sq-sim-pct { font-size: 1.6rem; font-weight: 800; color: var(--sq-teal); }
-.sq-sim-bar { height: 5px; background: var(--sq-border); border-radius: 999px; margin-top: 8px; overflow: hidden; }
-.sq-sim-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--sq-teal), var(--sq-mint)); }
+/* 계산 지표 */
+.sq-ind-row {{
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--sq-border);
+}}
+.sq-ind-name {{ font-size: 0.78rem; color: var(--sq-muted); }}
+.sq-ind-val  {{ font-size: 1.05rem; font-weight: 700; }}
 
-.sq-vec-matrix { display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; margin-bottom: 4px; }
-.sq-vec-cell { aspect-ratio: 1; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; color: var(--sq-muted); padding: 4px; }
-.sq-vec-cell.v1 { background: rgba(10,92,92,0.15); color: var(--sq-mint); font-weight: 700; border: 1.5px solid var(--sq-teal); }
-.sq-vec-cell.v0 { background: var(--sq-bg); border: 1px solid var(--sq-border); }
-.sq-vec-bit { font-size: 0.82rem; font-weight: 800; }
+/* 엔진 뷰 */
+.sq-eng-section {{
+  background: {ac_bg}; border: 1px solid var(--sq-border);
+  border-radius: var(--sq-radius); box-shadow: var(--sq-shadow);
+  padding: 22px 24px; margin-bottom: 16px;
+}}
+.sq-eng-section-title {{
+  font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--sq-muted); margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--sq-border);
+}}
+/* 파이프라인 */
+.sq-pipe-row {{
+  display: flex; align-items: center; gap: 0;
+  flex-wrap: wrap; margin: 8px 0;
+}}
+.sq-pipe-step {{
+  background: {is_dark and "#1a2d30" or "#f0f7f5"}; border: 1.5px solid #0a5c5c;
+  border-radius: 10px; padding: 10px 18px;
+  font-size: 0.82rem; font-weight: 600; color: {is_dark and "#b8ffd4" or "#063d3d"};
+  min-width: 110px; text-align: center;
+  animation: pipeIn 0.4s ease forwards;
+  opacity: 0; transform: translateY(8px);
+}}
+.sq-pipe-step.s1{{animation-delay:0.0s}}
+.sq-pipe-step.s2{{animation-delay:0.15s}}
+.sq-pipe-step.s3{{animation-delay:0.30s}}
+.sq-pipe-step.s4{{animation-delay:0.45s}}
+@keyframes pipeIn {{
+  to {{ opacity: 1; transform: translateY(0); }}
+}}
+.sq-pipe-arrow {{
+  color: #0a5c5c; font-size: 1.2rem; padding: 0 8px;
+  opacity: 0; animation: pipeIn 0.4s ease forwards;
+}}
+.sq-pipe-arrow.a1{{animation-delay:0.07s}}
+.sq-pipe-arrow.a2{{animation-delay:0.22s}}
+.sq-pipe-arrow.a3{{animation-delay:0.37s}}
+.sq-pipe-result {{
+  background: linear-gradient(135deg,#063d3d,#0a5c5c);
+  color: #b8ffd4 !important; border-color: transparent !important;
+}}
+/* 유사도 카드 */
+.sq-sim-card {{
+  background: {is_dark and "#212a35" or "#f7f9fb"}; border: 1.5px solid var(--sq-border);
+  border-radius: 12px; padding: 16px; text-align: center;
+  transition: all 0.2s;
+}}
+.sq-sim-card.best {{
+  background: rgba(10,92,92,0.1); border-color: #0a5c5c;
+}}
+.sq-sim-name {{ font-size: 0.82rem; font-weight: 700; color: var(--sq-text); margin-bottom: 8px; }}
+.sq-sim-pct  {{ font-size: 1.6rem; font-weight: 800; color: #0a5c5c; }}
+.sq-sim-bar  {{ height: 5px; background: var(--sq-border); border-radius: 999px; margin-top: 8px; overflow: hidden; }}
+.sq-sim-fill {{ height: 100%; border-radius: 999px; background: linear-gradient(90deg,#0a5c5c,#1dd1a1); }}
+/* 벡터 매트릭스 */
+.sq-vec-matrix {{ display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; margin-bottom: 4px; }}
+.sq-vec-cell {{
+  aspect-ratio: 1; border-radius: 6px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  font-size: 0.6rem; color: var(--sq-muted); padding: 4px;
+}}
+.sq-vec-cell.v1 {{ background: rgba(10,92,92,0.25); color: {is_dark and "#b8ffd4" or "#063d3d"}; font-weight: 700; border: 1.5px solid rgba(10,92,92,0.4); }}
+.sq-vec-cell.v0 {{ background: {is_dark and "#1a2d30" or "#f0f3f5"}; border: 1px solid var(--sq-border); }}
+.sq-vec-bit {{ font-size: 0.82rem; font-weight: 800; }}
+/* 분석목적 카드 */
+.sq-goal-card {{
+  padding: 12px 14px; border-radius: 10px; border: 1.5px solid;
+  margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px;
+}}
+.sq-goal-card.on  {{ background: rgba(10,92,92,0.1); border-color: rgba(10,92,92,0.3); }}
+.sq-goal-card.off {{ background: {is_dark and "#212a35" or "#f7f9fb"}; border-color: var(--sq-border); opacity: 0.65; }}
+.sq-goal-dot {{ width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }}
+.sq-goal-dot.on  {{ background: #0a5c5c; }}
+.sq-goal-dot.off {{ background: #c5d5d0; }}
+.sq-goal-card-name {{ font-size: 0.88rem; font-weight: 700; color: var(--sq-text); }}
+.sq-goal-card-desc {{ font-size: 0.78rem; color: var(--sq-muted); margin-top: 2px; }}
+
+.sq-feed-scroll{{max-height:220px;overflow-y:auto;padding-right:4px}}
+.sq-feed-scroll::-webkit-scrollbar{{width:4px}}
+.sq-feed-scroll::-webkit-scrollbar-track{{background:transparent}}
+.sq-feed-scroll::-webkit-scrollbar-thumb{{background:#c5d5d0;border-radius:2px}}
+.sq-goal-chip{{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;margin:3px 2px;border:1px solid}}
+.sq-goal-on{{background:rgba(10,92,92,0.1);color:#0a5c5c;border-color:rgba(10,92,92,0.25)}}
+.sq-goal-off{{background: {is_dark and "#212a35" or "#f0f3f5"};color:#9aacb0;border-color:var(--sq-border)}}
+.sq-mkt-item{{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid {mkt_border}}}
+.sq-mkt-name{{font-size:0.75rem;font-weight:600;color:var(--sq-muted)}}
+.sq-mkt-val{{font-size:0.82rem;font-weight:700}}
+.sq-ac-wrap{{background:{ac_bg};border:1px solid var(--sq-border);border-radius:var(--sq-radius);box-shadow:var(--sq-shadow);overflow:hidden;margin-bottom:14px}}
+.sq-ac-header{{background:linear-gradient(135deg,#063d3d 0%,#0a5c5c 100%);padding:14px 20px;display:flex;align-items:center;gap:10px}}
+.sq-ac-title{{font-size:1.05rem;font-weight:700;color:#fff;letter-spacing:-0.01em}}
+.sq-ac-badge{{font-size:0.72rem;background:rgba(255,255,255,0.15);color:#b8ffd4;padding:2px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.2)}}
+.sq-ac-llm{{padding:10px 20px;background:rgba(10,92,92,0.05);border-bottom:1px solid {ac_block_border};font-family:monospace;font-size:0.78rem;color:#0a5c5c}}
+.sq-ac-body{{display:grid;grid-template-columns:1fr 1fr 1fr 1fr}}
+.sq-ac-block{{padding:20px 20px;border-right:1px solid {ac_block_border}}}
+.sq-ac-block:last-child{{border-right:none}}
+.sq-ac-lbl{{font-size:0.72rem;font-weight:700;color:var(--sq-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}}
+.sq-ac-text{{font-size:1.0rem;font-weight:600;color:var(--sq-text);line-height:1.65}}
+.sq-rail-section{{margin-bottom:4px}}
+.sq-rail-title{{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--sq-muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--sq-border)}}
+.sq-ind-row{{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--sq-border)}}
+.sq-ind-name{{font-size:0.82rem;color:var(--sq-muted)}}
+.sq-ind-val{{font-size:1.15rem;font-weight:700}}
+.sq-eng-section{{background:{ac_bg};border:1px solid var(--sq-border);border-radius:var(--sq-radius);box-shadow:var(--sq-shadow);padding:22px 24px;margin-bottom:16px}}
+.sq-eng-section-title{{font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--sq-muted);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--sq-border)}}
+.sq-pipe-row{{display:flex;align-items:center;flex-wrap:wrap;margin:8px 0}}
+.sq-pipe-step{{background:{is_dark and "#1a2d30" or "#f0f7f5"};border:1.5px solid #0a5c5c;border-radius:10px;padding:10px 18px;font-size:0.82rem;font-weight:600;color:{is_dark and "#b8ffd4" or "#063d3d"};min-width:110px;text-align:center;animation:pipeIn 0.4s ease forwards;opacity:0;transform:translateY(8px)}}
+.sq-pipe-step.s1{{animation-delay:0.0s}}.sq-pipe-step.s2{{animation-delay:0.15s}}.sq-pipe-step.s3{{animation-delay:0.3s}}.sq-pipe-step.s4{{animation-delay:0.45s}}
+@keyframes pipeIn{{to{{opacity:1;transform:translateY(0)}}}}
+.sq-pipe-arrow{{color:#0a5c5c;font-size:1.2rem;padding:0 8px;opacity:0;animation:pipeIn 0.4s ease forwards}}
+.sq-pipe-arrow.a1{{animation-delay:0.07s}}.sq-pipe-arrow.a2{{animation-delay:0.22s}}.sq-pipe-arrow.a3{{animation-delay:0.37s}}
+.sq-pipe-result{{background:linear-gradient(135deg,#063d3d,#0a5c5c);color:#b8ffd4 !important;border-color:transparent !important}}
+.sq-sim-card{{background:{is_dark and "#212a35" or "#f7f9fb"};border:1.5px solid var(--sq-border);border-radius:12px;padding:16px;text-align:center}}
+.sq-sim-card.best{{background:rgba(10,92,92,0.1);border-color:#0a5c5c}}
+.sq-sim-name{{font-size:0.82rem;font-weight:700;color:var(--sq-text);margin-bottom:8px}}
+.sq-sim-pct{{font-size:1.6rem;font-weight:800;color:#0a5c5c}}
+.sq-sim-bar{{height:5px;background:var(--sq-border);border-radius:999px;margin-top:8px;overflow:hidden}}
+.sq-sim-fill{{height:100%;border-radius:999px;background:linear-gradient(90deg,#0a5c5c,#1dd1a1)}}
+.sq-vec-matrix{{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:4px}}
+.sq-vec-cell{{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:0.6rem;color:var(--sq-muted);padding:4px;border:1.5px solid var(--sq-border)}}
+.sq-vec-cell.v1{{background:rgba(10,92,92,0.25);color:{is_dark and "#b8ffd4" or "#063d3d"};font-weight:700;border-color:rgba(10,92,92,0.4)}}
+.sq-vec-cell.v0{{background:{is_dark and "#161b22" or "#ffffff"}}}
+.sq-vec-bit{{font-size:0.9rem;font-weight:800}}
+.sq-goal-card{{padding:12px 14px;border-radius:10px;border:1.5px solid;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}}
+.sq-goal-card.on{{background:rgba(10,92,92,0.1);border-color:rgba(10,92,92,0.3)}}
+.sq-goal-card.off{{background:{is_dark and "#212a35" or "#f7f9fb"};border-color:var(--sq-border);opacity:0.65}}
+.sq-goal-dot{{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}}
+.sq-goal-dot.on{{background:#0a5c5c}}.sq-goal-dot.off{{background:#c5d5d0}}
+.sq-goal-card-name{{font-size:0.88rem;font-weight:700;color:var(--sq-text)}}
+.sq-goal-card-desc{{font-size:0.78rem;color:var(--sq-muted);margin-top:2px}}
 </style>
 """
+
+
+def ticker_tape_html(theme: str = "light") -> str:
+    """TradingView 상단 티커 테이프 위젯."""
+    import json
+    config = {
+        "symbols": [
+            {"proName": "FOREXCOM:SPX500", "title": "S&P 500"},
+            {"proName": "FOREXCOM:NSXUSD", "title": "Nasdaq 100"},
+            {"fx_id": "KRWUSD", "title": "USD/KRW"},
+            {"proName": "BITSTAMP:BTCUSD", "title": "BTC/USD"},
+            {"proName": "BITSTAMP:ETHUSD", "title": "ETH/USD"}
+        ],
+        "showSymbolLogo": True,
+        "colorTheme": theme,
+        "isTransparent": False,
+        "displayMode": "adaptive",
+        "locale": "ko"
+    }
+    return f"""
+<div class="tradingview-widget-container">
+  <div class="tradingview-widget-container__widget"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+  {json.dumps(config)}
+  </script>
+</div>
+"""
+
+
+def technical_analysis_html(symbol: str = "NASDAQ:AAPL", theme: str = "light") -> str:
+    """TradingView Advanced Chart 위젯 (전체 차트)."""
+    import json
+    config = {
+        "autosize": True,
+        "symbol": symbol,
+        "interval": "D",
+        "timezone": "Asia/Seoul",
+        "theme": theme,
+        "style": "1",
+        "locale": "ko",
+        "toolbar_bg": "#f1f3f6" if theme == "light" else "#131722",
+        "enable_publishing": False,
+        "withdateranges": True,
+        "hide_side_toolbar": False,
+        "allow_symbol_change": True,
+        "container_id": "tradingview_advanced_chart"
+    }
+    return f"""
+<div class="tradingview-widget-container" style="height: 600px; width: 100%;">
+  <div id="tradingview_advanced_chart" style="height: 100%; width: 100%;"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+  new TradingView.widget({json.dumps(config)});
+  </script>
+</div>
+"""
+
 
 def dimension_pills_html(dimension: str | None) -> str:
     labs = ["1D", "2D", "ND"]
@@ -418,7 +895,13 @@ def _hero_row_html(
 </div>
 """
 
-def _fig_candlestick(df: pd.DataFrame) -> go.Figure:
+
+def _fig_candlestick(df: pd.DataFrame, theme: str = "light") -> go.Figure:
+    is_dark = (theme == "dark")
+    bg_color = "#1e252e" if is_dark else "#fafbfb"
+    text_color = "#f0f7f5" if is_dark else "#1a2d30"
+    grid_color = "#313d4a" if is_dark else "#dde3e8"
+
     dc = _find_col(df, "date", "datetime")
     oc, hc, lc, cc = _find_col(df, "open"), _find_col(df, "high"), _find_col(df, "low"), _find_col(df, "close")
     if not (dc and oc and hc and lc and cc):
@@ -434,13 +917,21 @@ def _fig_candlestick(df: pd.DataFrame) -> go.Figure:
         xaxis_rangeslider_visible=False,
         height=420,
         margin=dict(l=30, r=20, t=30, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="DM Sans, sans-serif"), 
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        font=dict(family="DM Sans, sans-serif", color=text_color),
+        xaxis=dict(gridcolor=grid_color),
+        yaxis=dict(gridcolor=grid_color),
     )
     return fig
 
-def _fig_rsi(df: pd.DataFrame) -> go.Figure:
+
+def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
+    is_dark = (theme == "dark")
+    bg_color = "#1e252e" if is_dark else "#fafbfb"
+    text_color = "#f0f7f5" if is_dark else "#1a2d30"
+    grid_color = "#313d4a" if is_dark else "#dde3e8"
+
     dc = _find_col(df, "date", "datetime")
     cc = _find_col(df, "close")
     if not (dc and cc): return go.Figure()
@@ -457,10 +948,11 @@ def _fig_rsi(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         height=260,
         margin=dict(l=30, r=20, t=20, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="DM Sans, sans-serif"),
-        yaxis=dict(range=[0, 100], fixedrange=True),
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        font=dict(family="DM Sans, sans-serif", color=text_color),
+        yaxis=dict(range=[0, 100], fixedrange=True, gridcolor=grid_color),
+        xaxis=dict(gridcolor=grid_color),
     )
     return fig
 
@@ -481,7 +973,13 @@ def _quarter_port_bm(df: pd.DataFrame) -> tuple[list[Any], list[float], list[flo
             br.append(pr[-1])
     return xs, pr, br
 
-def _fig_static_dual(df: pd.DataFrame) -> go.Figure:
+
+def _fig_static_dual(df: pd.DataFrame, theme: str = "light") -> go.Figure:
+    is_dark = (theme == "dark")
+    bg_color = "#1e252e" if is_dark else "#fafbfb"
+    text_color = "#f0f7f5" if is_dark else "#1a2d30"
+    grid_color = "#313d4a" if is_dark else "#dde3e8"
+
     xs, pr, br = _quarter_port_bm(df)
     fig = go.Figure()
     if not xs:
@@ -494,41 +992,65 @@ def _fig_static_dual(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         height=420,
         margin=dict(l=30, r=20, t=30, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="DM Sans, sans-serif"),
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        font=dict(family="DM Sans, sans-serif", color=text_color),
+        xaxis=dict(gridcolor=grid_color),
+        yaxis=dict(gridcolor=grid_color),
     )
     return fig
 
-def _fig_excess_bar(df: pd.DataFrame) -> go.Figure:
+
+def _fig_excess_bar(df: pd.DataFrame, theme: str = "light") -> go.Figure:
+    is_dark = (theme == "dark")
+    bg_color = "#1e252e" if is_dark else "#fafbfb"
+    text_color = "#f0f7f5" if is_dark else "#1a2d30"
+    grid_color = "#313d4a" if is_dark else "#dde3e8"
+
     xs, pr, br = _quarter_port_bm(df)
     if not xs: return go.Figure()
     ex = (np.array(pr) - np.array(br)) * 100.0
     fig = go.Figure(go.Bar(x=xs, y=ex, marker_color=np.where(ex >= 0, "#0a5c5c", "#e74c3c")))
     fig.update_layout(
-        title=dict(text="분기 초과수익률 (%p)", font=dict(size=14, color="#1a2d30")),
+        title=dict(text="분기 초과수익률 (%p)", font=dict(size=14, color=text_color)),
         height=260,
         margin=dict(l=30, r=20, t=40, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="DM Sans, sans-serif"),
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        font=dict(family="DM Sans, sans-serif", color=text_color),
+        xaxis=dict(gridcolor=grid_color),
+        yaxis=dict(gridcolor=grid_color),
     )
     return fig
 
-def _fig_weight_drift(df: pd.DataFrame) -> go.Figure:
-    qc, ac, wc, twc = _find_col(df, "quarter", "date"), _find_col(df, "asset_name", "asset"), _find_col(df, "weight"), _find_col(df, "target_weight")
-    if not (qc and ac and wc and twc): return go.Figure()
+
+def _fig_weight_drift(df: pd.DataFrame, theme: str = "light") -> go.Figure:
+    is_dark = (theme == "dark")
+    bg_color = "#1e252e" if is_dark else "#fafbfb"
+    text_color = "#f0f7f5" if is_dark else "#1a2d30"
+    grid_color = "#313d4a" if is_dark else "#dde3e8"
+
+    qc = _find_col(df, "quarter", "date")
+    ac = _find_col(df, "asset_name", "asset")
+    wc, twc = _find_col(df, "weight"), _find_col(df, "target_weight")
+    if not (qc and ac and wc and twc):
+        return go.Figure()
     last_q = df.sort_values(qc)[qc].iloc[-1]
     part = df[df[qc] == last_q]
     drift = (pd.to_numeric(part[wc], errors="coerce") - pd.to_numeric(part[twc], errors="coerce")) * 100.0
     fig = go.Figure(go.Bar(x=part[ac].astype(str), y=drift, marker_color=np.where(drift.values >= 0, "#0a5c5c", "#2ed573")))
     fig.update_layout(
-        title=dict(text=f"비중 괴리율 (%p) — {last_q}", font=dict(size=14, color="#1a2d30")),
+        title=dict(
+            text=f"비중 괴리율 (%p) — {last_q}",
+            font=dict(size=14, color=text_color),
+        ),
         height=260,
         margin=dict(l=30, r=20, t=40, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="DM Sans, sans-serif"),
+        paper_bgcolor=bg_color,
+        plot_bgcolor=bg_color,
+        font=dict(family="DM Sans, sans-serif", color=text_color),
+        xaxis=dict(gridcolor=grid_color),
+        yaxis=dict(gridcolor=grid_color),
     )
     return fig
 
@@ -548,41 +1070,53 @@ def _render_market(mkt_data: list) -> str:
         )
     return "".join(rows)
 
-def _render_home_charts(mkt_data: list) -> None:
-    if not mkt_data or not any(m.get("hist") for m in mkt_data):
-        st.info("시장 데이터를 불러오는 중... (yfinance 필요)")
+
+def _render_home_charts(mkt_data: list, theme: str = "light") -> None:
+    """홈 화면: 시장 지표 카드형 UI (깔끔하고 모던한 스타일)."""
+    
+    if not mkt_data:
+        st.info("시장 데이터를 불러오는 중...")
         return
 
-    valid = [m for m in mkt_data if m.get("price") is not None and len(m.get("hist", [])) > 0]
-    if not valid:
-        st.warning("yfinance 설치 후 시장 지표를 확인할 수 있습니다.")
-        return
+    # 카드 스타일 CSS
+    st.markdown("""
+    <style>
+    .mkt-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 2rem;
+    }
+    .mkt-card {
+        background: #ffffff;
+        border: 1px solid #dde3e8;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+    .mkt-name { font-size: 0.75rem; font-weight: 700; color: #7a8f94; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mkt-val { font-size: 1.5rem; font-weight: 700; color: #1a2d30; }
+    .mkt-chg { font-size: 0.9rem; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    cols = st.columns(3)
-    for i, item in enumerate(valid[:6]):
-        col = cols[i % 3]
-        with col:
-            chg   = item["change"]
-            color = "#1a7f37" if chg >= 0 else "#b42318"
-            bg_fill = "rgba(26,127,55,0.08)" if chg >= 0 else "rgba(180,35,24,0.06)"
-            sign  = "+" if chg > 0 else ""
-            arrow = "▲" if chg >= 0 else "▼"
-            price_str = f"{item['price']:,.0f}" if item["name"] in ("KOSPI", "USD/KRW") else f"{item['price']:,.2f}"
-            hist = item.get("hist", [])
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(y=hist, mode="lines", line=dict(color=color, width=2.5), fill="tozeroy", fillcolor=bg_fill, hoverinfo="skip"))
-            fig.add_annotation(x=0, y=1.15, xref="paper", yref="paper", text=f"<b>{item['name']}</b>", showarrow=False, font=dict(size=12, color="#7a8f94"), xanchor="left", yanchor="top")
-            fig.add_annotation(x=0, y=0.75, xref="paper", yref="paper", text=f"<b>{price_str}</b>", showarrow=False, font=dict(size=26, color=color, family="DM Sans"), xanchor="left", yanchor="top")
-            fig.add_annotation(x=0, y=0.45, xref="paper", yref="paper", text=f"{arrow} {sign}{chg:.2f}%", showarrow=False, font=dict(size=13, color=color, family="DM Sans"), xanchor="left", yanchor="top")
-            fig.update_layout(
-                height=140, margin=dict(l=20, r=0, t=20, b=0), 
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", 
-                showlegend=False, xaxis=dict(visible=False, fixedrange=True), 
-                yaxis=dict(visible=False, fixedrange=True, range=[min(hist)*0.99, max(hist)*1.05]), 
-                shapes=[dict(type="rect", xref="paper", yref="paper", x0=0, y0=0, x1=1, y1=1, line=dict(color="rgba(128,128,128,0.2)", width=1.5), fillcolor="rgba(0,0,0,0)", layer="below")]
-            )
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.markdown('<div class="mkt-container">', unsafe_allow_html=True)
+    for item in mkt_data[:6]:
+        if item.get("price") is None: continue
+        chg = item["change"]
+        color = "#1a7f37" if chg >= 0 else "#b42318"
+        arrow = "▲" if chg >= 0 else "▼"
+        st.markdown(f"""
+        <div class="mkt-card">
+            <div class="mkt-name">{item['name']}</div>
+            <div class="mkt-val">{item['price']:,.2f}</div>
+            <div class="mkt-chg" style="color:{color}">{arrow} {abs(chg):.2f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def build(
     view: str,
@@ -592,45 +1126,38 @@ def build(
     insight_result: dict | None,
     df: pd.DataFrame | None,
     mkt_data: list | None = None,
+    theme: str = "light",
 ) -> None:
     mkt_data = mkt_data or []
+    is_dark = (theme == "dark")
 
     if view == "home":
-        st.markdown("""
-        <div style="background:rgba(10,92,92,0.15); padding:16px 20px; border-radius:10px; border-left:4px solid var(--sq-teal); margin-bottom:28px; box-shadow: var(--sq-shadow);">
-            <strong style="color:var(--sq-teal); font-size:1.1rem;">✦</strong> <span style="color:var(--sq-text)">오늘 시장은 기술주 중심의 강한 반등세가 이어지며 <strong>위험 자산 선호(Risk-On)</strong> 국면입니다.</span>
+        # 1. Market Sentiment (시장 분위기 요약)
+        banner_bg = "#1a2d30" if is_dark else "#eef7f4"
+        st.markdown(f"""
+        <div style="background:{banner_bg}; padding:16px 20px; border-radius:10px; border-left:4px solid #0a5c5c; margin-bottom:28px; box-shadow: 0 2px 10px rgba(10,92,92,0.05);">
+            <strong style="color:#1dd1a1; font-size:1.1rem;">✦</strong> 오늘 시장은 기술주 중심의 강한 반등세가 이어지며 <strong style="color:#1dd1a1;">위험 자산 선호(Risk-On)</strong> 국면입니다.
         </div>
         """, unsafe_allow_html=True)
 
+        # 2. 상단 타이틀
+        title_color = "#f4faf9" if is_dark else "#063d3d"
         st.markdown(
-            '<h2 style="font-size:1.5rem;font-weight:800;color:var(--sq-text);margin-bottom:4px">Market Overview</h2>'
-            '<p style="color:var(--sq-muted);font-size:0.88rem;margin-bottom:20px">Real-time global market indicators</p>',
+            f'<h2 style="font-size:1.5rem;font-weight:800;color:{title_color};margin-bottom:4px">Market Overview</h2>'
+            '<p style="color:#7a8f94;font-size:0.88rem;margin-bottom:20px">Real-time global market indicators</p>',
             unsafe_allow_html=True,
         )
         
-        _render_home_charts(mkt_data)
+        # 3. Market Indicators (마켓 카드 3x2)
+        _render_home_charts(mkt_data, theme=theme)
 
-                # 3. 드래그 앤 드롭 업로드 영역 (CSS로 파일 업로더 자체에 점선 박스 씌우기)
-        st.markdown("""
-        <style>
-        /* 파일 업로더 전체 영역에 점선 테두리와 여백 주기 */
-        [data-testid="stFileUploader"] {
-            border: 2px dashed var(--sq-teal);
-            padding: 35px 20px;
-            border-radius: 14px;
-            margin-top: 30px;
-            background-color: transparent;
-        }
-        /* 파일 업로더의 기본 라벨(제목)을 크고 가운데 정렬되게 꾸미기 */
-        [data-testid="stFileUploader"] > label {
-            display: flex;
-            justify-content: center;
-            font-size: 1.3rem !important;
-            font-weight: 800 !important;
-            color: var(--sq-teal) !important;
-            margin-bottom: 15px;
-        }
-        </style>
+        # 4. Enhanced CSV Upload Zone (메인 업로드 영역)
+        upload_bg = "#1e252e" if is_dark else "#f7f9fb"
+        st.markdown(f"""
+        <div style="border: 2px dashed #0a5c5c; padding: 40px; text-align: center; border-radius: 14px; background-color: {upload_bg}; margin-top: 30px; margin-bottom: 10px;">
+            <h3 style="color: #1dd1a1; margin-bottom: 10px;">📂 분석할 포트폴리오/종목 CSV를 이곳에 드래그하세요</h3>
+            <p style="color: #7a8f94; font-size:0.9rem;">어떤 파일을 올려야 할지 모르겠나요? <a href="#" style="color:#0a5c5c; font-weight:bold;">[샘플 다운로드]</a></p>
+        </div>
         """, unsafe_allow_html=True)
 
         # 숨겨두었던 라벨(label_visibility) 옵션을 빼고 제목을 직접 넣어줍니다.
@@ -640,11 +1167,7 @@ def build(
             key="main_csv_upload"
         )
         
-        if uploaded_main:
-            import pandas as pd
-            st.session_state['saved_df'] = pd.read_csv(uploaded_main) 
-            st.session_state.fin_view = "main"
-            st.rerun()
+        uploaded_main = st.file_uploader(" ", type=["csv"], key="main_csv_upload", label_visibility="collapsed")
         return
     
     if classify_result is None or df is None:
@@ -684,6 +1207,7 @@ def build(
                     f'<small style="color:var(--sq-muted)">{html.escape(str(ev["date"]))}</small></div>'
                 )
 
+        # ② 분석 목적
         active_goals = set(classify_result["goals"])
         goals_html = ""
         for g, (title, _desc) in _GOAL_META.items():
@@ -691,6 +1215,7 @@ def build(
             icon = '✦' if on else '○'
             goals_html += f'<span class="sq-goal-chip {"sq-goal-on" if on else "sq-goal-off" }"><span style="font-size:0.7rem">{icon}</span> {title}</span>'
 
+        # ③ 계산 지표
         ind_html = ""
         for name, val, _sub in _kpi_defs(classify_result, indicator_result):
             dot_color = _badge_color(str(val), name)
@@ -705,6 +1230,8 @@ def build(
 
     with mc:
         if engine:
+            # ① Analysis Pipeline
+            pipe_res_bg = "linear-gradient(135deg,#063d3d,#0a5c5c)"
             st.markdown(f'''
 <div class="sq-eng-section">
 <div class="sq-eng-section-title">① Analysis Pipeline</div>
@@ -715,10 +1242,11 @@ def build(
   <span class="sq-pipe-arrow a2">→</span>
   <div class="sq-pipe-step s3">Dimension<br><small style="font-weight:400;color:var(--sq-muted)">Ticker count</small></div>
   <span class="sq-pipe-arrow a3">→</span>
-  <div class="sq-pipe-step s4 sq-pipe-result">Visualization<br><small style="font-weight:400">Auto render</small></div>
+  <div class="sq-pipe-step s4 sq-pipe-result" style="background:{pipe_res_bg}">Visualization<br><small style="font-weight:400">Auto render</small></div>
 </div>
-<div style="margin-top:12px;padding:10px 14px;background:rgba(10,92,92,0.15);border-radius:8px;font-family:monospace;font-size:0.82rem;color:var(--sq-mint)">
-Result: <b style="color:var(--sq-text)">{classify_result["class_type"]}</b> / <b style="color:var(--sq-text)">{classify_result["dimension"]}</b> / dashboard: <b style="color:var(--sq-text)">{classify_result["dashboard"]}</b>
+<div style="margin-top:12px;padding:10px 14px;background:rgba(10,92,92,0.1);border-radius:8px;
+font-family:monospace;font-size:0.82rem;color:{is_dark and "#b8ffd4" or "#063d3d"}">
+Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"]}</b> / dashboard: <b>{classify_result["dashboard"]}</b>
 </div></div>''', unsafe_allow_html=True)
 
             active_goals = set(classify_result["goals"])
@@ -742,10 +1270,15 @@ Result: <b style="color:var(--sq-text)">{classify_result["class_type"]}</b> / <b
             st.markdown(f'''
 <div class="sq-eng-section">
   <div class="sq-eng-section-title">② Goal Inference</div>
-  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">{chips_html}</div>
-  <div style="background: var(--sq-bg); border-left: 3px solid var(--sq-teal); padding: 12px 16px; margin-bottom: 16px; font-size: 0.82rem; border-radius:4px;">{reasons_html}</div>
-  <div style="background: rgba(10,92,92,0.05); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.78rem; color: var(--sq-mint); line-height: 1.4;">
-    > System generating insight...<br>> Input Context: {llm_preview}
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+    {chips_html}
+  </div>
+  <div style="background: {is_dark and "#1a2d30" or "#f7f9fb"}; border-left: 3px solid #0a5c5c; padding: 12px 16px; margin-bottom: 16px; font-size: 0.82rem; color: var(--sq-text);">
+    {reasons_html}
+  </div>
+  <div style="background: rgba(10,92,92,0.08); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.78rem; color: #1dd1a1; line-height: 1.4;">
+    > System generating insight...<br>
+    > Input Context: {llm_preview}
   </div>
 </div>''', unsafe_allow_html=True)
 
@@ -778,13 +1311,18 @@ Result: <b style="color:var(--sq-text)">{classify_result["class_type"]}</b> / <b
             v = v + [0]*(18-len(v)) if len(v) < 18 else v[:18]
             vec_groups = [
                 ("1. TimeSeries (시계열)", ["Date","Open","High","Low","Close","Volume"], v[0:6]),
-                ("2. Static (자산 구조)", ["Asset(Name)","Weight","Target","Value","Return","Quarter(Date)"], v[6:12]),
-                ("3. Activity (매매)", ["Timestamp","Buy/Sell","Quantity","Price","Fee","Ticker"], v[12:18]),
+                ("2. Activity (매매 활동)", ["Timestamp","Buy/Sell","Quantity","Price","Fee"], v[6:11]),
+                ("3. Static (자산·성과)", ["Asset","Holding","Weight","Value","Contrib","Target","Return"], v[11:18]),
             ]
 
             vec_html = '<div class="sq-eng-section"><div class="sq-eng-section-title">④ 18D Feature Vector (Input Scan)</div>'
             for grp_title, labs, ch in vec_groups:
-                vec_html += f'<div style="margin-bottom:18px"><div style="font-size:0.78rem;font-weight:700;color:var(--sq-teal);margin-bottom:8px;">{grp_title}</div><div class="sq-vec-matrix">'
+                ncols = len(labs)
+                vec_html += (
+                    f'<div style="margin-bottom:18px">'
+                    f'<div style="font-size:0.78rem;font-weight:700;color:#0a5c5c;margin-bottom:8px;">{grp_title}</div>'
+                    f'<div class="sq-vec-matrix" style="grid-template-columns: repeat({ncols}, 1fr); gap: 8px;">'
+                )
                 for lb, bit in zip(labs, ch):
                     cls = "v1" if bit else "v0"
                     icon = "●" if bit else "·"
@@ -807,13 +1345,20 @@ Result: <b style="color:var(--sq-text)">{classify_result["class_type"]}</b> / <b
             for col, (name, val, sub) in zip([k1,k2,k3,k4,k5], defs):
                 with col:
                     dot = _badge_color(str(val), name)
-                    st.markdown(f'<div class="sq-card sq-kpi"><div class="sq-kpi__name">{html.escape(name)}</div><div class="sq-kpi__val">{html.escape(str(val))}</div><div class="sq-kpi__sub">{html.escape(sub)}</div><div class="sq-kpi__dot" style="color:{dot}">● 상태</div></div>', unsafe_allow_html=True)
+                    st.markdown(
+                        f'<div class="sq-card sq-kpi">'
+                        f'<div class="sq-kpi__name">{html.escape(name)}</div>'
+                        f'<div class="sq-kpi__val">{html.escape(str(val))}</div>'
+                        f'<div class="sq-kpi__sub">{html.escape(sub)}</div>'
+                        f'<div class="sq-kpi__dot" style="color:{dot}">● 상태</div>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
-            main_id = chart_result.get("main_chart", "")
+            # 메인 차트: TradingView Advanced Charting Widget
             st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-            if main_id == "candlestick": st.plotly_chart(_fig_candlestick(df), use_container_width=True)
-            elif main_id == "dual_line" and classify_result["class_type"] == "Static": st.plotly_chart(_fig_static_dual(df), use_container_width=True)
-            else: st.plotly_chart(_fig_candlestick(df), use_container_width=True)
+            # 파일 이름은 유효한 심볼이 아닐 가능성이 높으므로 기본값(AAPL) 사용
+            st.components.v1.html(technical_analysis_html(symbol="NASDAQ:AAPL", theme=theme), height=600)
             st.markdown('</div>', unsafe_allow_html=True)
 
             subs = chart_result.get("sub_charts") or []
@@ -821,21 +1366,36 @@ Result: <b style="color:var(--sq-text)">{classify_result["class_type"]}</b> / <b
                 s1, s2 = st.columns(2)
                 with s1:
                     st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-                    if subs[0] == "rsi": st.plotly_chart(_fig_rsi(df), use_container_width=True)
-                    elif subs[0] == "excess_bar": st.plotly_chart(_fig_excess_bar(df), use_container_width=True)
+                    if subs[0] == "rsi":
+                        st.plotly_chart(_fig_rsi(df, theme=theme), use_container_width=True)
+                    elif subs[0] == "excess_bar":
+                        st.plotly_chart(_fig_excess_bar(df, theme=theme), use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
                 with s2:
                     st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-                    if subs[1] == "rolling_corr": st.caption("Rolling correlation (2D sample needed)")
-                    elif subs[1] == "weight_drift_bar": st.plotly_chart(_fig_weight_drift(df), use_container_width=True)
+                    if subs[1] == "rolling_corr":
+                        st.caption("Rolling correlation (2D sample needed)")
+                    elif subs[1] == "weight_drift_bar":
+                        st.plotly_chart(_fig_weight_drift(df, theme=theme), use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
             elif len(subs) == 1:
                 st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-                if subs[0] == "rsi": st.plotly_chart(_fig_rsi(df), use_container_width=True)
+                if subs[0] == "rsi":
+                    st.plotly_chart(_fig_rsi(df, theme=theme), use_container_width=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            blocks = [("지금 할 행동", insight_result.get("action", "")), ("Why now?", insight_result.get("why_now", ""))]
-            blocks_html = "".join([f'<div class="sq-ac-block"><div class="sq-ac-lbl">{html.escape(lbl)}</div><div class="sq-ac-text">{html.escape(str(txt))}</div></div>' for lbl, txt in blocks])
+            # Action Console - 세로 배치 (지금 할 행동, Why now?)
+            blocks = [
+                ("지금 할 행동", insight_result.get("action", "")),
+                ("Why now?", insight_result.get("why_now", "")),
+            ]
+            blocks_html = "".join([
+                f'<div class="sq-ac-block">'
+                f'<div class="sq-lbl">{html.escape(lbl)}</div>'
+                f'<div class="sq-ac-text">{html.escape(str(txt))}</div>'
+                f'</div>'
+                for lbl, txt in blocks
+            ])
             st.markdown(
                 '<div class="sq-ac-wrap"><div class="sq-ac-header"><span class="sq-ac-title">Action Console</span><span class="sq-ac-badge">AI Insight</span></div>'
                 f'<div class="sq-ac-llm">{html.escape(str(insight_result.get("llm_input","")))}</div><div class="sq-ac-body">{blocks_html}</div></div>',

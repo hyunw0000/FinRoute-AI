@@ -8,16 +8,20 @@ from modules.chart_selector import select_chart
 from modules.classifier import classify
 from modules.dashboard_builder import (
     SIDEBAR_BRAND_HTML, SIDEBAR_ICON_DASHBOARD, SIDEBAR_ICON_ENGINE,
-    SIDEBAR_ICON_HOME, THEME_CSS, build, dimension_pills_html,
+    SIDEBAR_ICON_HOME, get_theme_css, build, dimension_pills_html,
 )
 from modules.indicator_calculator import calculate
 from modules.insight_generator import generate
 
 st.set_page_config(page_title="FinRoute AI", layout="wide", initial_sidebar_state="expanded")
-st.markdown(THEME_CSS, unsafe_allow_html=True)
+
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"
 
 if "fin_view" not in st.session_state:
     st.session_state.fin_view = "home"
+
+st.markdown(get_theme_css(st.session_state.theme), unsafe_allow_html=True)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
@@ -49,6 +53,12 @@ def _get_market_data() -> list[dict]:
     except ImportError:
         return []
 
+# ── 데이터 관리 및 로드 ──────────────────────────
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = {}  # {filename: df}
+if "active_file" not in st.session_state:
+    st.session_state.active_file = None
+
 # ── 사이드바 ──────────────────────────────────
 with st.sidebar:
     st.markdown(SIDEBAR_BRAND_HTML, unsafe_allow_html=True)
@@ -68,29 +78,56 @@ with st.sidebar:
                 st.session_state.fin_view = key
                 st.rerun()
 
-    dim_section = st.empty()
+    # CSV Manager Drawer
+    with st.sidebar.expander("📂 CSV Files Manager", expanded=True):
+        uploaded_files = st.file_uploader(
+            "Upload CSVs", type="csv", key="multi_csv_upload", accept_multiple_files=True,
+        )
+        
+        if uploaded_files:
+            for f in uploaded_files:
+                if f.name not in st.session_state.uploaded_files:
+                    try:
+                        # 파일 인코딩 에러 방지
+                        st.session_state.uploaded_files[f.name] = pd.read_csv(f)
+                    except UnicodeDecodeError:
+                        f.seek(0)
+                        st.session_state.uploaded_files[f.name] = pd.read_csv(f, encoding='cp949')
+                    
+                    if st.session_state.active_file is None:
+                        st.session_state.active_file = f.name
+            
+        if st.session_state.uploaded_files:
+            selected = st.radio(
+                "Select active file", 
+                list(st.session_state.uploaded_files.keys()),
+                index=list(st.session_state.uploaded_files.keys()).index(st.session_state.active_file) 
+                if st.session_state.active_file in st.session_state.uploaded_files else 0,
+                label_visibility="collapsed"
+            )
+            if selected != st.session_state.active_file:
+                st.session_state.active_file = selected
+                st.rerun()
 
-    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sq-nav-label">CSV Upload</div>', unsafe_allow_html=True)
-    uploaded = st.file_uploader(
-        "Upload CSV", type="csv", key="sb_csv_upload", label_visibility="collapsed",
-    )
+    st.markdown('<div class="sq-nav-label">Settings</div>', unsafe_allow_html=True)
+    is_dark = st.toggle("Dark Mode", value=st.session_state.theme == "dark")
+    if is_dark != (st.session_state.theme == "dark"):
+        st.session_state.theme = "dark" if is_dark else "light"
+        st.rerun()
 
-# ── 데이터 로드 ───────────────────────────────
-df: pd.DataFrame | None = None
-fname = ""
+# ── 데이터 동기화 ──────────────────────────────
+df = st.session_state.uploaded_files.get(st.session_state.active_file)
+fname = st.session_state.active_file
 
-# 1. 사이드바에서 새로 파일을 업로드한 경우
-if uploaded is not None:
-    df = pd.read_csv(uploaded)
-    fname = uploaded.name
-    # 사이드바에서 올려도 세션에 백업해두기 (안전장치)
-    st.session_state['saved_df'] = df 
 
-# 2. 홈 화면에서 업로드하여 세션에 백업된 데이터가 있는 경우
-elif 'saved_df' in st.session_state:
-    df = st.session_state['saved_df']
-    fname = "Uploaded_Data.csv" # 홈에서 올린 파일명 임시 처리
+
+classify_result: dict | None = None
+if df is not None and not df.empty:
+    classify_result = classify(df)
+
+dim = classify_result["dimension"] if classify_result else None
+st.markdown(dimension_pills_html(dim), unsafe_allow_html=True)
+
 
 # ── 메인 렌더 ─────────────────────────────────
 classify_result  = None
@@ -114,4 +151,5 @@ build(
     st.session_state.fin_view,
     classify_result, indicator_result, chart_result, insight_result,
     df, mkt_data,
+    theme=st.session_state.theme,
 )
