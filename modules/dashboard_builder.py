@@ -640,23 +640,14 @@ def technical_analysis_html(symbol: str = "NASDAQ:AAPL", theme: str = "light") -
 
 
 def dimension_pills_html(dimension: str | None) -> str:
-    """데이터 로드 후 고정 차원 표시용 HTML (버튼 아님)."""
     labs = ["1D", "2D", "ND"]
     parts: list[str] = []
     for lab in labs:
         active = dimension is not None and lab == dimension
-        cls = (
-            "sq-dim-pill sq-dim-pill--active"
-            if active
-            else "sq-dim-pill sq-dim-pill--idle"
-        )
+        cls = "sq-dim-pill sq-dim-pill--active" if active else "sq-dim-pill sq-dim-pill--idle"
         parts.append(f'<span class="{cls}">{html.escape(lab)}</span>')
     label = '<p class="sq-nav-label" style="margin-top:0">Data Dimension</p>'
-    return (
-        f"{label}"
-        f'<div class="sq-dim-row">{"".join(parts)}</div>'
-    )
-
+    return f"{label}<div class=\"sq-dim-row\">{''.join(parts)}</div>"
 
 SIDEBAR_ICON_DASHBOARD = """
 <div class="sq-sb-nav-ic" title="대시보드">
@@ -693,7 +684,6 @@ SIDEBAR_BRAND_HTML = """
 </div>
 """
 
-
 def _find_col(df: pd.DataFrame, *cands: str) -> str | None:
     lower = {str(c).lower().replace(" ", "_"): c for c in df.columns}
     for cand in cands:
@@ -704,7 +694,6 @@ def _find_col(df: pd.DataFrame, *cands: str) -> str | None:
             if k in lk:
                 return orig
     return None
-
 
 def _detect_events(
     df: pd.DataFrame, classify_result: dict, indicator_result: dict
@@ -734,45 +723,16 @@ def _detect_events(
         for i in range(2, len(w)):
             dt = str(w[dc].iloc[i])
             if ma20.iloc[i] > ma60.iloc[i] and ma20.iloc[i - 1] <= ma60.iloc[i - 1]:
-                events.append(
-                    {"date": dt, "label": "골든크로스", "kind": "buy", "color": "#1a7f37"}
-                )
+                events.append({"date": dt, "label": "골든크로스", "kind": "buy", "color": "#1a7f37"})
             if ma20.iloc[i] < ma60.iloc[i] and ma20.iloc[i - 1] >= ma60.iloc[i - 1]:
-                events.append(
-                    {"date": dt, "label": "데드크로스", "kind": "sell", "color": "#b42318"}
-                )
+                events.append({"date": dt, "label": "데드크로스", "kind": "sell", "color": "#b42318"})
             rv = float(rsi.iloc[i]) if pd.notna(rsi.iloc[i]) else None
             if rv is not None:
                 if rv > 70:
-                    events.append(
-                        {
-                            "date": dt,
-                            "label": "RSI 과매수",
-                            "kind": "warn",
-                            "color": "#b54708",
-                        }
-                    )
+                    events.append({"date": dt, "label": "RSI 과매수", "kind": "warn", "color": "#b54708"})
                 elif rv < 30:
-                    events.append(
-                        {
-                            "date": dt,
-                            "label": "RSI 과매도",
-                            "kind": "buy",
-                            "color": "#1a7f37",
-                        }
-                    )
-        # 중복 제거: 동일 label 연속 발생 시 첫 발생일만 유지
-        deduped: list[dict] = []
-        seen_labels: set[str] = set()
-        for ev in events:
-            if ev["label"] not in seen_labels:
-                seen_labels.add(ev["label"])
-                deduped.append(ev)
-        # 전체 이벤트에서 중복 없는 것만 (label별 마지막 1개)
-        label_last: dict[str, dict] = {}
-        for ev in events:
-            label_last[ev["label"]] = ev
-        # 날짜 역순 정렬 후 label별 첫 발생만
+                    events.append({"date": dt, "label": "RSI 과매도", "kind": "buy", "color": "#1a7f37"})
+        
         label_first: dict[str, dict] = {}
         for ev in events:
             if ev["label"] not in label_first:
@@ -789,14 +749,7 @@ def _detect_events(
                     wv = float(row[wc])
                     tv = float(row[tc])
                     if abs(wv - tv) > 0.05:
-                        events.append(
-                            {
-                                "date": str(row[qc]),
-                                "label": "비중 이탈",
-                                "kind": "warn",
-                                "color": "#b54708",
-                            }
-                        )
+                        events.append({"date": str(row[qc]), "label": "비중 이탈", "kind": "warn", "color": "#b54708"})
             label_first_s: dict[str, dict] = {}
             for ev in events:
                 if ev["label"] not in label_first_s:
@@ -805,26 +758,11 @@ def _detect_events(
 
     elif ct == "Static" and dim == "ND":
         if (indicator_result.get("HHI") or 0) > 2500:
-            events.append(
-                {
-                    "date": "latest",
-                    "label": "HHI 초과",
-                    "kind": "sell",
-                    "color": "#b42318",
-                }
-            )
+            events.append({"date": "latest", "label": "HHI 초과", "kind": "sell", "color": "#b42318"})
         if (indicator_result.get("top3_conc") or 0) > 0.6:
-            events.append(
-                {
-                    "date": "latest",
-                    "label": "Top-3 집중",
-                    "kind": "warn",
-                    "color": "#b54708",
-                }
-            )
+            events.append({"date": "latest", "label": "Top-3 집중", "kind": "warn", "color": "#b54708"})
 
     return events
-
 
 _GOAL_META = {
     "goal_trend": ("추세", "시계열 방향성·모멘텀"),
@@ -837,7 +775,6 @@ _GOAL_META = {
     "goal_relation": ("연관", "리스크 기여·네트워크"),
 }
 
-
 def _kpi_defs(
     classify_result: dict, indicator_result: dict
 ) -> list[tuple[str, Any, str]]:
@@ -846,13 +783,11 @@ def _kpi_defs(
     ir = indicator_result
 
     def fmt_pct(x: Any) -> str:
-        if x is None or (isinstance(x, float) and not np.isfinite(x)):
-            return "—"
+        if x is None or (isinstance(x, float) and not np.isfinite(x)): return "—"
         return f"{float(x)*100:.2f}%"
 
     def fmt_num(x: Any, nd: int = 2) -> str:
-        if x is None or (isinstance(x, float) and not np.isfinite(x)):
-            return "—"
+        if x is None or (isinstance(x, float) and not np.isfinite(x)): return "—"
         return f"{float(x):.{nd}f}"
 
     rows: list[tuple[str, Any, str]] = []
@@ -862,11 +797,7 @@ def _kpi_defs(
             ("MDD", fmt_pct(ir.get("MDD")), "낙폭"),
             ("샤프 비율", fmt_num(ir.get("Sharpe"), 2), "위험조정수익"),
             ("ATR (14)", fmt_num(ir.get("ATR"), 1), "변동성"),
-            (
-                "추세 (MA20 vs MA60)",
-                ir.get("trend") or "—",
-                "골든/데드",
-            ),
+            ("추세 (MA20 vs MA60)", ir.get("trend") or "—", "골든/데드"),
         ]
     elif ct == "Static" and dim == "2D":
         rows = [
@@ -885,84 +816,54 @@ def _kpi_defs(
             ("최대 리스크 기여", ir.get("max_risk_asset") or "—", "자산명"),
         ]
     else:
-        rows = [
-            ("지표 1", "—", "n/a"),
-            ("지표 2", "—", "n/a"),
-            ("지표 3", "—", "n/a"),
-            ("지표 4", "—", "n/a"),
-            ("지표 5", "—", "n/a"),
-        ]
+        rows = [("지표 1", "—", "n/a"), ("지표 2", "—", "n/a"), ("지표 3", "—", "n/a"), ("지표 4", "—", "n/a"), ("지표 5", "—", "n/a")]
     return rows
-
 
 def _badge_color(val: str, name: str) -> str:
     s = str(val).lower()
     nm = name.lower()
-    # 추세
-    if "dead" in s:
-        return "#b42318"
-    if "golden" in s:
-        return "#1a7f37"
-    # RSI
+    if "dead" in s: return "#b42318"
+    if "golden" in s: return "#1a7f37"
     if "rsi" in nm:
         try:
             v = float(val)
-            if v > 70: return "#b42318"   # 과매수 위험
-            if v < 30: return "#1a7f37"   # 과매도 매수기회
-            return "#6b7280"              # 중립
-        except Exception:
-            pass
-    # MDD
+            if v > 70: return "#b42318"
+            if v < 30: return "#1a7f37"
+            return "#6b7280"
+        except Exception: pass
     if "mdd" in nm:
         try:
             v = float(val.replace("%", "")) / 100 if "%" in val else float(val)
-            if v < -0.20: return "#b42318"   # 위험
-            if v < -0.10: return "#b54708"   # 주의
-            return "#1a7f37"                  # 양호
-        except Exception:
-            pass
-    # 샤프
+            if v < -0.20: return "#b42318"
+            if v < -0.10: return "#b54708"
+            return "#1a7f37"
+        except Exception: pass
     if "샤프" in nm or "sharpe" in nm:
         try:
             v = float(val)
             if v >= 1.0: return "#1a7f37"
             if v >= 0.0: return "#b54708"
             return "#b42318"
-        except Exception:
-            pass
-    # HHI
+        except Exception: pass
     if "hhi" in nm:
         try:
             v = float(val.replace(",", ""))
             if v > 2500: return "#b42318"
             if v > 1500: return "#b54708"
             return "#1a7f37"
-        except Exception:
-            pass
-    # Top-3
+        except Exception: pass
     if "top" in nm:
         try:
             v = float(val.replace("%", ""))
             if v > 60: return "#b54708"
             return "#1a7f37"
-        except Exception:
-            pass
-    # 기타 기본
-    if "reduce" in s or "위험" in nm:
-        return "#b42318"
-    if "buy" in s or "양호" in nm:
-        return "#1a7f37"
+        except Exception: pass
+    if "reduce" in s or "위험" in nm: return "#b42318"
+    if "buy" in s or "양호" in nm: return "#1a7f37"
     return "#6b7280"
 
-
 def _hero_row_html(
-    sig: str,
-    conf: int,
-    cr_txt: str,
-    regime: str,
-    action: str,
-    hedge_or_rebal: str,
-    last_title: str,
+    sig: str, conf: int, cr_txt: str, regime: str, action: str, hedge_or_rebal: str, last_title: str,
 ) -> str:
     esc = html.escape
     pct = max(0, min(100, conf))
@@ -1071,7 +972,6 @@ def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     )
     return fig
 
-
 def _quarter_port_bm(df: pd.DataFrame) -> tuple[list[Any], list[float], list[float]]:
     qc = _find_col(df, "quarter", "date", "날짜", "일자")
     wc, twc, rc = _find_col(df, "weight", "비중"), _find_col(df, "target_weight", "목표비중"), _find_col(df, "return", "수익률")
@@ -1165,13 +1065,7 @@ def _fig_weight_drift(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     last_q = df.sort_values(qc)[qc].iloc[-1]
     part = df[df[qc] == last_q]
     drift = (pd.to_numeric(part[wc], errors="coerce") - pd.to_numeric(part[twc], errors="coerce")) * 100.0
-    fig = go.Figure(
-        go.Bar(
-            x=part[ac].astype(str),
-            y=drift,
-            marker_color=np.where(drift.values >= 0, "#0a5c5c", "#2ed573"),
-        )
-    )
+    fig = go.Figure(go.Bar(x=part[ac].astype(str), y=drift, marker_color=np.where(drift.values >= 0, "#0a5c5c", "#2ed573")))
     fig.update_layout(
         title=dict(
             text=f"비중 괴리율 (%p) — {last_q}",
@@ -1187,26 +1081,19 @@ def _fig_weight_drift(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     )
     return fig
 
-
 def _render_market(mkt_data: list) -> str:
-    if not mkt_data:
-        return '<p style="font-size:0.82rem;color:#9aacb0;margin:4px 0">yfinance not installed</p>'
+    if not mkt_data: return '<p style="font-size:0.82rem;color:var(--sq-muted);margin:4px 0">yfinance not installed</p>'
     rows = []
     for item in mkt_data:
-        if item.get("price") is None:
-            continue
+        if item.get("price") is None: continue
         chg = item["change"]
         arrow = "▲" if chg >= 0 else "▼"
         color = "#1a7f37" if chg >= 0 else "#b42318"
-        price_str = (
-            f"{item['price']:,.0f}" if item["name"] in ("KOSPI", "USD/KRW")
-            else f"{item['price']:,.2f}"
-        )
+        price_str = f"{item['price']:,.0f}" if item["name"] in ("KOSPI", "USD/KRW") else f"{item['price']:,.2f}"
         rows.append(
             f'<div class="sq-mkt-item">'
             f'<span class="sq-mkt-name">{html.escape(item["name"])}</span>'
-            f'<span class="sq-mkt-val" style="color:{color}">'
-            f'{arrow} {price_str} <small>({chg:+.2f}%)</small></span></div>'
+            f'<span class="sq-mkt-val" style="color:{color}">{arrow} {price_str} <small>({chg:+.2f}%)</small></span></div>'
         )
     return "".join(rows)
 
@@ -1258,7 +1145,6 @@ def _render_home_charts(mkt_data: list, theme: str = "light") -> None:
         """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-
 def build(
     view: str,
     classify_result: dict | None,
@@ -1272,9 +1158,6 @@ def build(
     mkt_data = mkt_data or []
     is_dark = (theme == "dark")
 
-    # ══════════════════════════════════════
-    # HOME 뷰
-    # ══════════════════════════════════════
     if view == "home":
         # 1. Market Sentiment (시장 분위기 요약)
         banner_bg = "#1a2d30" if is_dark else "#eef7f4"
@@ -1303,30 +1186,30 @@ def build(
             <p style="color: #7a8f94; font-size:0.9rem;">어떤 파일을 올려야 할지 모르겠나요? <a href="#" style="color:#0a5c5c; font-weight:bold;">[샘플 다운로드]</a></p>
         </div>
         """, unsafe_allow_html=True)
+
+        # 숨겨두었던 라벨(label_visibility) 옵션을 빼고 제목을 직접 넣어줍니다.
+        uploaded_main = st.file_uploader(
+            "📂 분석할 포트폴리오/종목 CSV를 아래에 드래그하세요", 
+            type=["csv"], 
+            key="main_csv_upload"
+        )
         
         uploaded_main = st.file_uploader(" ", type=["csv"], key="main_csv_upload", label_visibility="collapsed")
         return
-
-    # ══════════════════════════════════════
-    # CSV 미업로드 공통 처리
-    # ══════════════════════════════════════
+    
     if classify_result is None or df is None:
         mc, rc = st.columns([74, 26], gap="medium")
         with mc:
             st.markdown('''
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-height:60vh;color:#9aacb0;text-align:center;gap:12px">
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;color:var(--sq-muted);text-align:center;gap:12px">
   <div style="font-size:3rem">📂</div>
-  <div style="font-size:1.1rem;font-weight:700;color:#7a8f94">Upload a CSV to get started</div>
+  <div style="font-size:1.1rem;font-weight:700;color:var(--sq-text)">Upload a CSV to get started</div>
   <div style="font-size:0.88rem">Use the sidebar to upload your investment data</div>
 </div>''', unsafe_allow_html=True)
         with rc:
             st.markdown(
-                '<div class="sq-rail" style="margin-bottom:10px">'
-                '<div class="sq-rail-section">'
-                '<div class="sq-rail-title">Market Indicators</div>'
-                + _render_market(mkt_data) +
-                '</div></div>', unsafe_allow_html=True)
+                '<div class="sq-rail" style="margin-bottom:10px"><div class="sq-rail-section"><div class="sq-rail-title">Market Indicators</div>'
+                + _render_market(mkt_data) + '</div></div>', unsafe_allow_html=True)
         return
 
     dash   = classify_result["dashboard"]
@@ -1335,23 +1218,14 @@ height:60vh;color:#9aacb0;text-align:center;gap:12px">
 
     mc, rc = st.columns([74, 26], gap="medium")
 
-    # ══════════════════════════════════════
-    # 우측 배너 (Dashboard & Engine 공통)
-    # ══════════════════════════════════════
     with rc:
-        # 시장 지표
         st.markdown(
-            '<div class="sq-rail" style="margin-bottom:10px">'
-            '<div class="sq-rail-section">'
-            '<div class="sq-rail-title">Market Indicators</div>'
-            + _render_market(mkt_data) +
-            '</div></div>', unsafe_allow_html=True)
+            '<div class="sq-rail" style="margin-bottom:10px"><div class="sq-rail-section"><div class="sq-rail-title">Market Indicators</div>'
+            + _render_market(mkt_data) + '</div></div>', unsafe_allow_html=True)
 
-        # Insights 박스
-        # ① 이벤트
         feed_items = ""
         if not events:
-            feed_items = '<p style="font-size:0.82rem;color:#9aacb0;margin:4px 0">No events detected</p>'
+            feed_items = '<p style="font-size:0.82rem;color:var(--sq-muted);margin:4px 0">No events detected</p>'
         else:
             for ev in events:
                 feed_items += (
@@ -1366,44 +1240,21 @@ height:60vh;color:#9aacb0;text-align:center;gap:12px">
         for g, (title, _desc) in _GOAL_META.items():
             on = g in active_goals
             icon = '✦' if on else '○'
-            goals_html += (
-                f'<span class="sq-goal-chip {"sq-goal-on" if on else "sq-goal-off"}">'
-                f'<span style="font-size:0.7rem">{icon}</span>'
-                f'{title}</span>'
-            )
+            goals_html += f'<span class="sq-goal-chip {"sq-goal-on" if on else "sq-goal-off" }"><span style="font-size:0.7rem">{icon}</span> {title}</span>'
 
         # ③ 계산 지표
         ind_html = ""
         for name, val, _sub in _kpi_defs(classify_result, indicator_result):
             dot_color = _badge_color(str(val), name)
-            ind_html += (
-                f'<div class="sq-ind-row">'
-                f'<span class="sq-ind-name">{html.escape(name)}</span>'
-                f'<span class="sq-ind-val" style="color:{dot_color}">{html.escape(str(val))}</span>'
-                f'</div>'
-            )
+            ind_html += f'<div class="sq-ind-row"><span class="sq-ind-name">{html.escape(name)}</span><span class="sq-ind-val" style="color:{dot_color}">{html.escape(str(val))}</span></div>'
 
         st.markdown(
-            '<div class="sq-rail">'
-            '<div class="sq-rail-section">'
-            '<div class="sq-rail-title">① Auto Events</div>'
-            f'<div class="sq-feed-scroll">{feed_items}</div>'
-            '</div>'
-            '<div class="sq-rail-section" style="margin-top:16px">'
-            '<div class="sq-rail-title">② Analysis Goals</div>'
-            f'<div style="display:flex;flex-wrap:wrap;gap:4px;line-height:2">{goals_html}</div>'
-            '</div>'
-            '<div class="sq-rail-section" style="margin-top:16px">'
-            '<div class="sq-rail-title">③ Key Indicators</div>'
-            f'{ind_html}'
-            '</div>'
-            '</div>',
+            f'<div class="sq-rail"><div class="sq-rail-section"><div class="sq-rail-title">① Auto Events</div><div class="sq-feed-scroll">{feed_items}</div></div>'
+            f'<div class="sq-rail-section" style="margin-top:16px"><div class="sq-rail-title">② Analysis Goals</div><div style="display:flex;flex-wrap:wrap;gap:4px;line-height:2">{goals_html}</div></div>'
+            f'<div class="sq-rail-section" style="margin-top:16px"><div class="sq-rail-title">③ Key Indicators</div>{ind_html}</div></div>',
             unsafe_allow_html=True,
         )
 
-    # ══════════════════════════════════════
-    # 중앙 - ENGINE VIEW & DASHBOARD VIEW
-    # ══════════════════════════════════════
     with mc:
         if engine:
             # ① Analysis Pipeline
@@ -1412,11 +1263,11 @@ height:60vh;color:#9aacb0;text-align:center;gap:12px">
 <div class="sq-eng-section">
 <div class="sq-eng-section-title">① Analysis Pipeline</div>
 <div class="sq-pipe-row">
-  <div class="sq-pipe-step s1">18D Vector<br><small style="font-weight:400;color:#4a8080">Column scan</small></div>
+  <div class="sq-pipe-step s1">18D Vector<br><small style="font-weight:400;color:var(--sq-muted)">Column scan</small></div>
   <span class="sq-pipe-arrow a1">→</span>
-  <div class="sq-pipe-step s2">Class<br><small style="font-weight:400;color:#4a8080">Cosine similarity</small></div>
+  <div class="sq-pipe-step s2">Class<br><small style="font-weight:400;color:var(--sq-muted)">Cosine similarity</small></div>
   <span class="sq-pipe-arrow a2">→</span>
-  <div class="sq-pipe-step s3">Dimension<br><small style="font-weight:400;color:#4a8080">Ticker count</small></div>
+  <div class="sq-pipe-step s3">Dimension<br><small style="font-weight:400;color:var(--sq-muted)">Ticker count</small></div>
   <span class="sq-pipe-arrow a3">→</span>
   <div class="sq-pipe-step s4 sq-pipe-result" style="background:{pipe_res_bg}">Visualization<br><small style="font-weight:400">Auto render</small></div>
 </div>
@@ -1425,7 +1276,6 @@ font-family:monospace;font-size:0.82rem;color:{is_dark and "#b8ffd4" or "#063d3d
 Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"]}</b> / dashboard: <b>{classify_result["dashboard"]}</b>
 </div></div>''', unsafe_allow_html=True)
 
-            # ② Goal Inference
             active_goals = set(classify_result["goals"])
             chips_html = ""
             reasons_html = ""
@@ -1437,13 +1287,11 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                     elif "comp" in g: mock_reason = "자산명(Asset) 및 비중(Weight) 벡터 동시 감지"
                     elif "compare" in g: mock_reason = "목표(Target) 대비 실제(Actual) 비중 수치 포착"
                     elif "anomaly" in g: mock_reason = "비중 괴리 또는 과매수/과매도 위험 감지"
-                    reasons_html += f'<div style="margin-bottom: 5px;"><b>[{title}]</b> ← {mock_reason}</div>'
+                    reasons_html += f'<div style="margin-bottom: 5px; color:var(--sq-text);"><b>[{title}]</b> ← {mock_reason}</div>'
                 else:
                     chips_html += f'<span class="sq-goal-chip sq-goal-off">○ {title}</span>'
 
-            if not reasons_html:
-                reasons_html = "<div>감지된 주요 분석 목적 없음</div>"
-
+            if not reasons_html: reasons_html = "<div style='color:var(--sq-text);'>감지된 주요 분석 목적 없음</div>"
             llm_preview = html.escape(str(insight_result.get("llm_input", "System standby...")))
 
             st.markdown(f'''
@@ -1461,20 +1309,13 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
   </div>
 </div>''', unsafe_allow_html=True)
 
-            # ③ Class Similarity & System Meta
             sim  = classify_result["similarity"]
             best = max(sim, key=lambda k: sim[k])
             sim_html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">'
             for name in ["TimeSeries", "Static", "Activity"]:
                 pct = sim[name] * 100
                 is_best = name == best
-                sim_html += (
-                    f'<div class="sq-sim-card {"best" if is_best else ""}">'
-                    f'<div class="sq-sim-name">{"✅ " if is_best else ""}{name}</div>'
-                    f'<div class="sq-sim-pct">{pct:.0f}%</div>'
-                    f'<div class="sq-sim-bar"><div class="sq-sim-fill" style="width:{pct:.0f}%"></div></div>'
-                    f'</div>'
-                )
+                sim_html += f'<div class="sq-sim-card {"best" if is_best else ""}"><div class="sq-sim-name">{"✅ " if is_best else ""}{name}</div><div class="sq-sim-pct">{pct:.0f}%</div><div class="sq-sim-bar"><div class="sq-sim-fill" style="width:{pct:.0f}%"></div></div></div>'
             sim_html += '</div>'
 
             total_rows = len(df)
@@ -1482,24 +1323,19 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
             engine_status = "Anthropic LLM 🟢" if insight_result.get("signal") else "Quant Rule Engine (Fallback) 🟡"
 
             meta_html = f'''
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1a2d30; color: #f4faf9; padding: 12px 18px; border-radius: 8px; font-size: 0.8rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--sq-surface); border: 1px solid var(--sq-border); color: var(--sq-text); padding: 12px 18px; border-radius: 8px; font-size: 0.8rem;">
                 <div>
-                    <span style="color: #7a8f94; margin-right: 6px;">Data Meta:</span>
+                    <span style="color: var(--sq-muted); margin-right: 6px;">Data Meta:</span>
                     <span style="margin-right: 14px;">Rows <b>{total_rows:,}</b></span>
-                    <span style="color: {"#e74c3c" if missing_pct > 5 else "#1dd1a1"};">Missing <b>{missing_pct:.1f}%</b></span>
+                    <span style="color: {"#e74c3c" if missing_pct > 5 else "var(--sq-mint)"};">Missing <b>{missing_pct:.1f}%</b></span>
                 </div>
-                <div>
-                    <span style="color: #7a8f94; margin-right: 6px;">Active Engine:</span>
-                    <b>{engine_status}</b>
-                </div>
+                <div><span style="color: var(--sq-muted); margin-right: 6px;">Active Engine:</span><b>{engine_status}</b></div>
             </div>
             '''
             st.markdown(f'<div class="sq-eng-section"><div class="sq-eng-section-title">③ Class Similarity & Meta</div>{sim_html}{meta_html}</div>', unsafe_allow_html=True)
 
-            # ④ 18D Feature Vector (Input Scan)
             v = classify_result["vector"]
             v = v + [0]*(18-len(v)) if len(v) < 18 else v[:18]
-
             vec_groups = [
                 ("1. TimeSeries (시계열)", ["Date","Open","High","Low","Close","Volume"], v[0:6]),
                 ("2. Activity (매매 활동)", ["Timestamp","Buy/Sell","Quantity","Price","Fee"], v[6:11]),
@@ -1517,36 +1353,20 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                 for lb, bit in zip(labs, ch):
                     cls = "v1" if bit else "v0"
                     icon = "●" if bit else "·"
-                    vec_html += (
-                        f'<div class="sq-vec-cell {cls}" style="padding: 14px 6px; border-radius: 8px;">'
-                        f'<div class="sq-vec-bit" style="font-size:1.2rem; margin-bottom:4px;">{icon}</div>'
-                        f'<div style="font-size:0.7rem; text-align:center; font-weight:600;">{lb}</div>'
-                        f'</div>'
-                    )
+                    vec_html += f'<div class="sq-vec-cell {cls}" style="padding: 14px 6px; border-radius: 8px;"><div class="sq-vec-bit" style="font-size:1.2rem; margin-bottom:4px;">{icon}</div><div style="font-size:0.7rem; text-align:center; font-weight:600;">{lb}</div></div>'
                 vec_html += '</div></div>'
             vec_html += '</div>'
             st.markdown(vec_html, unsafe_allow_html=True)
 
         else:
-            # Hero
             last_title = "Rebalancing" if dash == "portfolio" else "Hedge"
             cr = indicator_result.get("cum_return")
             cr_txt = f"{float(cr)*100:.2f}%" if cr is not None and np.isfinite(cr) else "—"
             conf = int(insight_result.get("confidence", 0))
             sig  = insight_result.get("signal", "HOLD")
-            hedge_or_rebal = (
-                insight_result.get("rebalancing", "") if dash == "portfolio"
-                else insight_result.get("hedge", "")
-            )
-            st.markdown(
-                _hero_row_html(sig, conf, cr_txt,
-                               str(insight_result.get("regime","—")),
-                               str(insight_result.get("action","")),
-                               str(hedge_or_rebal), last_title),
-                unsafe_allow_html=True,
-            )
+            hedge_or_rebal = insight_result.get("rebalancing", "") if dash == "portfolio" else insight_result.get("hedge", "")
+            st.markdown(_hero_row_html(sig, conf, cr_txt, str(insight_result.get("regime","—")), str(insight_result.get("action","")), str(hedge_or_rebal), last_title), unsafe_allow_html=True)
 
-            # KPI row
             defs = _kpi_defs(classify_result, indicator_result)
             k1, k2, k3, k4, k5 = st.columns(5)
             for col, (name, val, sub) in zip([k1,k2,k3,k4,k5], defs):
@@ -1572,7 +1392,6 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                 st.info("해당 데이터 타입에 맞는 메인 차트를 준비 중입니다.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # 서브 차트
             subs = chart_result.get("sub_charts") or []
             if len(subs) >= 2:
                 s1, s2 = st.columns(2)
@@ -1609,13 +1428,7 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                 for lbl, txt in blocks
             ])
             st.markdown(
-                '<div class="sq-ac-wrap">'
-                '<div class="sq-ac-header">'
-                '<span class="sq-ac-title">Action Console</span>'
-                '<span class="sq-ac-badge">AI Insight</span>'
-                '</div>'
-                f'<div class="sq-ac-llm">{html.escape(str(insight_result.get("llm_input","")))}</div>'
-                f'<div class="sq-ac-body" style="grid-template-columns: 1fr;">{blocks_html}</div>'
-                '</div>',
+                '<div class="sq-ac-wrap"><div class="sq-ac-header"><span class="sq-ac-title">Action Console</span><span class="sq-ac-badge">AI Insight</span></div>'
+                f'<div class="sq-ac-llm">{html.escape(str(insight_result.get("llm_input","")))}</div><div class="sq-ac-body">{blocks_html}</div></div>',
                 unsafe_allow_html=True,
             )
