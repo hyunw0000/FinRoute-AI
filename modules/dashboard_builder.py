@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from streamlit_lightweight_charts import renderLightweightCharts
 import streamlit as st
 
 def get_theme_css(theme: str = "light") -> str:
@@ -995,12 +996,8 @@ def _hero_row_html(
 """
 
 
-def _fig_candlestick(df: pd.DataFrame, theme: str = "light") -> go.Figure:
-    is_dark = (theme == "dark")
-    bg_color = "#1e252e" if is_dark else "#fafbfb"
-    text_color = "#f0f7f5" if is_dark else "#1a2d30"
-    grid_color = "#313d4a" if is_dark else "#dde3e8"
-
+def _render_lightweight_chart(df: pd.DataFrame, theme: str = "light") -> None:
+    """CSV 데이터를 Lightweight Charts 데이터 형식으로 변환하여 렌더링."""
     dc = _find_col(df, "date", "datetime")
     oc, hc, lc, cc = (
         _find_col(df, "open"),
@@ -1009,50 +1006,34 @@ def _fig_candlestick(df: pd.DataFrame, theme: str = "light") -> go.Figure:
         _find_col(df, "close"),
     )
     if not (dc and oc and hc and lc and cc):
-        fig = go.Figure()
-        fig.add_annotation(text="OHLC 컬럼이 부족합니다", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
-        return fig
-    w = df.sort_values(dc)
-    fig = go.Figure(
-        data=[
-            go.Candlestick(
-                x=w[dc],
-                open=w[oc],
-                high=w[hc],
-                low=w[lc],
-                close=w[cc],
-                name="가격",
-            )
-        ]
-    )
-    close = pd.to_numeric(w[cc], errors="coerce")
-    fig.add_trace(
-        go.Scatter(
-            x=w[dc],
-            y=close.rolling(20, min_periods=5).mean(),
-            name="MA20",
-            line=dict(color="#2b83ba", width=1),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=w[dc],
-            y=close.rolling(60, min_periods=5).mean(),
-            name="MA60",
-            line=dict(color="#fdae61", width=1),
-        )
-    )
-    fig.update_layout(
-        xaxis_rangeslider_visible=False,
-        height=420,
-        margin=dict(l=30, r=20, t=30, b=30),
-        paper_bgcolor=bg_color,
-        plot_bgcolor=bg_color,
-        font=dict(family="DM Sans, sans-serif", color=text_color),
-        xaxis=dict(gridcolor=grid_color),
-        yaxis=dict(gridcolor=grid_color),
-    )
-    return fig
+        st.error("OHLC 데이터 컬럼을 찾을 수 없습니다.")
+        return
+
+    # 데이터 포맷팅
+    chart_data = df[[dc, oc, hc, lc, cc]].copy()
+    chart_data.columns = ["time", "open", "high", "low", "close"]
+    # 날짜를 'YYYY-MM-DD' 형식으로 변환 (필요 시)
+    chart_data["time"] = pd.to_datetime(chart_data["time"]).dt.strftime("%Y-%m-%d")
+
+    # 차트 설정
+    chart_options = {
+        "layout": {
+            "background": {"type": "solid", "color": "#131722" if theme == "dark" else "#ffffff"},
+            "textColor": "#d1d4dc" if theme == "dark" else "#131722",
+        },
+        "grid": {
+            "vertLines": {"color": "#2a2e39" if theme == "dark" else "#e0e3eb"},
+            "horzLines": {"color": "#2a2e39" if theme == "dark" else "#e0e3eb"},
+        },
+        "width": 800,
+        "height": 400,
+    }
+
+    series_data = chart_data.to_dict(orient="records")
+    renderLightweightCharts([
+        {"chart": chart_options, "series": [{"type": "Candlestick", "data": series_data}]}
+    ], "chart")
+
 
 
 def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
@@ -1586,10 +1567,9 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                         unsafe_allow_html=True,
                     )
 
-            # 메인 차트: TradingView Advanced Charting Widget
+            # 메인 차트: Lightweight Charts 커스텀 캔들스틱 (CSV 데이터 기반)
             st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-            # 파일 이름은 유효한 심볼이 아닐 가능성이 높으므로 기본값(AAPL) 사용
-            st.components.v1.html(technical_analysis_html(symbol="NASDAQ:AAPL", theme=theme), height=600)
+            _render_lightweight_chart(df, theme=theme)
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 서브 차트
