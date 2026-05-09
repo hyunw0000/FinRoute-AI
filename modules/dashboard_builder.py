@@ -50,23 +50,23 @@ def get_theme_css(theme: str = "light") -> str:
         ac_block_border = "#2a2e39"
     else:
         theme_vars = """
-  --sq-bg: #ffffff;
-  --sq-surface: #f8f9fa;
-  --sq-border: #e0e3eb;
-  --sq-text: #131722;
-  --sq-muted: #787b86;
-  --sq-shadow: 0 4px 24px rgba(6, 61, 61, 0.05);
-  --sq-shadow-hover: 0 10px 36px rgba(6, 61, 61, 0.08);
+  --sq-bg: #f8f9fa;
+  --sq-surface: #ffffff;
+  --sq-border: #d1d5db;
+  --sq-text: #111827;
+  --sq-muted: #6b7280;
+  --sq-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --sq-shadow-hover: 0 4px 6px rgba(0,0,0,0.1);
         """
-        app_bg = "#ffffff"
+        app_bg = "#f3f4f6"
         header_bg = "rgba(255, 255, 255, 0.95)"
-        sidebar_bg = "#f8f9fa"
-        sidebar_border = "#e0e3eb"
+        sidebar_bg = "#ffffff"
+        sidebar_border = "#e5e7eb"
         card_bg = "#ffffff"
-        feed_item_bg = "#ffffff"
-        mkt_border = "#e0e3eb"
+        feed_item_bg = "#f9fafb"
+        mkt_border = "#e5e7eb"
         ac_bg = "#ffffff"
-        ac_block_border = "#e0e3eb"
+        ac_block_border = "#e5e7eb"
 
     return f"""
 <style>
@@ -998,21 +998,22 @@ def _hero_row_html(
 
 def _render_lightweight_chart(df: pd.DataFrame, theme: str = "light") -> None:
     """CSV 데이터를 Lightweight Charts 데이터 형식으로 변환하여 렌더링."""
-    dc = _find_col(df, "date", "datetime")
-    oc, hc, lc, cc = (
-        _find_col(df, "open"),
-        _find_col(df, "high"),
-        _find_col(df, "low"),
-        _find_col(df, "close"),
-    )
-    if not (dc and oc and hc and lc and cc):
-        st.error("OHLC 데이터 컬럼을 찾을 수 없습니다.")
+    mapping = {
+        "date": _find_col(df, "date", "datetime", "time", "timestamp", "날짜", "일자"),
+        "open": _find_col(df, "open", "시가", "open_price"),
+        "high": _find_col(df, "high", "고가", "high_price"),
+        "low": _find_col(df, "low", "저가", "low_price"),
+        "close": _find_col(df, "close", "종가", "price", "close_price"),
+    }
+
+    missing = [k for k, v in mapping.items() if v is None]
+    if missing:
+        st.error(f"OHLC 차트용 컬럼을 찾을 수 없습니다: {', '.join(missing)}.\n\nCSV 헤더: {list(df.columns)}")
         return
 
     # 데이터 포맷팅
-    chart_data = df[[dc, oc, hc, lc, cc]].copy()
+    chart_data = df[[mapping["date"], mapping["open"], mapping["high"], mapping["low"], mapping["close"]]].copy()
     chart_data.columns = ["time", "open", "high", "low", "close"]
-    # 날짜를 'YYYY-MM-DD' 형식으로 변환 (필요 시)
     chart_data["time"] = pd.to_datetime(chart_data["time"]).dt.strftime("%Y-%m-%d")
 
     # 차트 설정
@@ -1035,17 +1036,18 @@ def _render_lightweight_chart(df: pd.DataFrame, theme: str = "light") -> None:
     ], "chart")
 
 
-
 def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     is_dark = (theme == "dark")
     bg_color = "#1e252e" if is_dark else "#fafbfb"
     text_color = "#f0f7f5" if is_dark else "#1a2d30"
     grid_color = "#313d4a" if is_dark else "#dde3e8"
 
-    dc = _find_col(df, "date", "datetime")
-    cc = _find_col(df, "close")
+    dc = _find_col(df, "date", "datetime", "time", "timestamp", "날짜", "일자")
+    cc = _find_col(df, "close", "종가", "price", "close_price")
+
     if not (dc and cc):
         return go.Figure()
+
     w = df.sort_values(dc)
     close = pd.to_numeric(w[cc], errors="coerce")
     dlt = close.diff()
@@ -1053,11 +1055,11 @@ def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     l = (-dlt.clip(upper=0)).ewm(alpha=1 / 14, adjust=False).mean()
     rs = g / l.replace(0, np.nan)
     rsi = 100 - (100 / (1 + rs))
-    fig = go.Figure(
-        go.Scatter(x=w[dc], y=rsi, name="RSI(14)", line=dict(color="#6a51a3"))
-    )
+
+    fig = go.Figure(go.Scatter(x=w[dc], y=rsi, name="RSI(14)", line=dict(color="#6a51a3")))
     fig.add_hline(y=70, line_dash="dot", line_color="#b54708")
     fig.add_hline(y=30, line_dash="dot", line_color="#1a7f37")
+
     fig.update_layout(
         height=260,
         margin=dict(l=30, r=20, t=20, b=30),
@@ -1071,10 +1073,8 @@ def _fig_rsi(df: pd.DataFrame, theme: str = "light") -> go.Figure:
 
 
 def _quarter_port_bm(df: pd.DataFrame) -> tuple[list[Any], list[float], list[float]]:
-    qc = _find_col(df, "quarter", "date")
-    wc, twc, rc = _find_col(df, "weight"), _find_col(df, "target_weight"), _find_col(
-        df, "return"
-    )
+    qc = _find_col(df, "quarter", "date", "날짜", "일자")
+    wc, twc, rc = _find_col(df, "weight", "비중"), _find_col(df, "target_weight", "목표비중"), _find_col(df, "return", "수익률")
     xs: list[Any] = []
     pr: list[float] = []
     br: list[float] = []
@@ -1102,18 +1102,14 @@ def _fig_static_dual(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     xs, pr, br = _quarter_port_bm(df)
     fig = go.Figure()
     if not xs:
-        fig.add_annotation(text="분기·수익 데이터가 필요합니다", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False)
         return fig
+
     cpr = np.cumprod(np.array(pr, dtype=float) + 1.0) - 1.0
     cbr = np.cumprod(np.array(br, dtype=float) + 1.0) - 1.0
-    fig.add_trace(
-        go.Scatter(x=xs, y=cpr, name="포트폴리오", line=dict(color="#0a5c5c", width=2.5))
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=xs, y=cbr, name="벤치마크(목표)", line=dict(color="#2ed573", width=2.5)
-        )
-    )
+
+    fig.add_trace(go.Scatter(x=xs, y=cpr, name="포트폴리오", line=dict(color="#0a5c5c", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=cbr, name="벤치마크(목표)", line=dict(color="#2ed573", width=2.5)))
+
     fig.update_layout(
         height=420,
         margin=dict(l=30, r=20, t=30, b=30),
@@ -1133,16 +1129,14 @@ def _fig_excess_bar(df: pd.DataFrame, theme: str = "light") -> go.Figure:
     grid_color = "#313d4a" if is_dark else "#dde3e8"
 
     xs, pr, br = _quarter_port_bm(df)
-    if not xs:
-        return go.Figure()
+    if not xs: return go.Figure()
     ex = (np.array(pr) - np.array(br)) * 100.0
-    fig = go.Figure(
-        go.Bar(
-            x=xs,
-            y=ex,
-            marker_color=np.where(ex >= 0, "#0a5c5c", "#e74c3c"),
-        )
-    )
+
+    fig = go.Figure(go.Bar(
+        x=xs, y=ex,
+        marker_color=np.where(ex >= 0, "#0a5c5c", "#e74c3c"),
+    ))
+
     fig.update_layout(
         title=dict(text="분기 초과수익률 (%p)", font=dict(size=14, color=text_color)),
         height=260,
@@ -1154,6 +1148,7 @@ def _fig_excess_bar(df: pd.DataFrame, theme: str = "light") -> go.Figure:
         yaxis=dict(gridcolor=grid_color),
     )
     return fig
+
 
 
 def _fig_weight_drift(df: pd.DataFrame, theme: str = "light") -> go.Figure:
@@ -1567,9 +1562,14 @@ Result: <b>{classify_result["class_type"]}</b> / <b>{classify_result["dimension"
                         unsafe_allow_html=True,
                     )
 
-            # 메인 차트: Lightweight Charts 커스텀 캔들스틱 (CSV 데이터 기반)
+            # 메인 차트 렌더링: class_type에 따른 분기
             st.markdown('<div class="sq-card sq-chart">', unsafe_allow_html=True)
-            _render_lightweight_chart(df, theme=theme)
+            if classify_result.get("class_type") == "TimeSeries":
+                _render_lightweight_chart(df, theme=theme)
+            elif classify_result.get("class_type") == "Static":
+                st.plotly_chart(_fig_static_dual(df, theme=theme), use_container_width=True)
+            else:
+                st.info("해당 데이터 타입에 맞는 메인 차트를 준비 중입니다.")
             st.markdown('</div>', unsafe_allow_html=True)
 
             # 서브 차트
