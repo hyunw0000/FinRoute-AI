@@ -92,3 +92,9 @@ FinRoute-AI/
 - `03_visualization`: 차트 선택 규칙
 - `04_dashboard`: 레이아웃 및 UX 디자인
 - `05_insight`: AI 추론 및 인사이트 생성 로직
+
+---
+
+## 📮 문의
+
+GitHub: [@hyunw0000](https://github.com/hyunw0000)
